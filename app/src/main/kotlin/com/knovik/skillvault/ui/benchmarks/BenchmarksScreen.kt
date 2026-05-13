@@ -1,20 +1,28 @@
 package com.knovik.skillvault.ui.benchmarks
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.knovik.skillvault.data.entity.PerformanceMetric
@@ -29,12 +37,33 @@ fun BenchmarksScreen(
     val metrics by viewModel.metrics.collectAsState()
     val summary by viewModel.summary.collectAsState()
     val isBenchmarking by viewModel.isBenchmarking.collectAsState()
+    val clipboardManager = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    var showTable by remember { mutableStateOf(true) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Empirical Benchmarks") },
                 actions = {
+                    IconButton(onClick = { showTable = !showTable }) {
+                        Icon(
+                            if (showTable) Icons.Default.List else Icons.Default.Info, 
+                            contentDescription = "Toggle View"
+                        )
+                    }
+                    IconButton(onClick = { 
+                        val csv = viewModel.getExportCsvContent()
+                        clipboardManager.setText(AnnotatedString(csv))
+                        scope.launch {
+                            snackbarHostState.showSnackbar("CSV copied to clipboard")
+                        }
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Export CSV")
+                    }
                     IconButton(onClick = { viewModel.runAutoBenchmark() }, enabled = !isBenchmarking) {
                         Icon(Icons.Default.PlayArrow, contentDescription = "Run Suite", tint = if (isBenchmarking) Color.Gray else MaterialTheme.colorScheme.primary)
                     }
@@ -44,7 +73,11 @@ fun BenchmarksScreen(
                     IconButton(onClick = { viewModel.clearMetrics() }) {
                         Icon(Icons.Default.Delete, contentDescription = "Clear Data")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { paddingValues ->
@@ -52,35 +85,97 @@ fun BenchmarksScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
         ) {
             if (isBenchmarking) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
-            // Summary Card
-            SummaryCard(summary)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Recent Operations",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Metrics List
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(metrics.reversed()) { metric ->
-                    MetricItem(metric)
+            
+            if (showTable) {
+                BenchmarkTableView(metrics)
+            } else {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    SummaryCard(summary)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Recent Operations",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(metrics.reversed()) { metric ->
+                            MetricItem(metric)
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun BenchmarkTableView(metrics: List<PerformanceMetric>) {
+    val scrollState = rememberScrollState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .horizontalScroll(scrollState)
+            .padding(8.dp)
+    ) {
+        // Table Header
+        Row(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+        ) {
+            TableCell("Type", weight = 0.15f, isHeader = true)
+            TableCell("Operation Name", weight = 0.35f, isHeader = true)
+            TableCell("Duration", weight = 0.15f, isHeader = true)
+            TableCell("R/E", weight = 0.15f, isHeader = true)
+            TableCell("Time", weight = 0.2f, isHeader = true)
+        }
+
+        // Table Rows
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(metrics.reversed()) { metric ->
+                val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    TableCell(metric.operationType, weight = 0.15f)
+                    TableCell(metric.operationName, weight = 0.35f)
+                    TableCell("${metric.durationMs}ms", weight = 0.15f)
+                    TableCell("${metric.resumeCount}/${metric.embeddingCount}", weight = 0.15f)
+                    TableCell(dateFormat.format(Date(metric.timestamp)), weight = 0.2f)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RowScope.TableCell(
+    text: String,
+    weight: Float,
+    isHeader: Boolean = false
+) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .weight(weight)
+            .padding(8.dp)
+            .widthIn(min = 100.dp),
+        style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) 
+                else MaterialTheme.typography.bodySmall,
+        textAlign = TextAlign.Start,
+        maxLines = 2
+    )
 }
 
 @Composable
@@ -147,7 +242,7 @@ fun MetricItem(metric: PerformanceMetric) {
                 if (metric.contextData.isNotBlank()) {
                     Text(
                         text = metric.contextData,
-                        style = MaterialTheme.typography.labelExtraSmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }

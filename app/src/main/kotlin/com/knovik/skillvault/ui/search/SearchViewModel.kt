@@ -231,8 +231,8 @@ class SearchViewModel @Inject constructor(
                     resumeRepository.recordSearchQuery(lastQuery)
                     
                     // If user was NOT satisfied, trigger agentic reformulation search
-                    if (!satisfied && feedbackText.isNotBlank()) {
-                        agenticSearch(_searchQuery.value, userFeedback = feedbackText)
+                    if (!satisfied) {
+                        agenticSearch(_searchQuery.value, userFeedback = feedbackText.ifBlank { null })
                     }
                 }
             } catch (e: Exception) {

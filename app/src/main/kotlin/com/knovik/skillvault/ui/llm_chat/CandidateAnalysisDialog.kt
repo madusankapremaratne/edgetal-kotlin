@@ -78,7 +78,7 @@ fun CandidateAnalysisDialog(
                         if (state.reasoning != null) {
                             Text("Agent Reasoning:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                             Text(state.reasoning, style = MaterialTheme.typography.bodyMedium)
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            Divider(modifier = Modifier.padding(vertical = 8.dp))
                         }
                         Text("Final Verdict:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                         Text(state.response, style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)

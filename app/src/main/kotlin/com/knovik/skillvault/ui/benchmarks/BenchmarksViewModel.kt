@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -109,10 +110,10 @@ class BenchmarksViewModel @Inject constructor(
         val reformulation = allMetrics.filter { it.operationType == "agentic_search" }
 
         _summary.value = BenchmarkSummary(
-            avgIngestionMs = ingestion.map { it.durationMs }.average().takeIf { !it.isNaN() } ?: 0.0,
-            avgRetrievalMs = retrieval.map { it.durationMs }.average().takeIf { !it.isNaN() } ?: 0.0,
-            avgReasoningMs = reasoning.map { it.durationMs }.average().takeIf { !it.isNaN() } ?: 0.0,
-            avgReformulationMs = reformulation.map { it.durationMs }.average().takeIf { !it.isNaN() } ?: 0.0,
+            avgIngestionMs = ingestion.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
+            avgRetrievalMs = retrieval.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
+            avgReasoningMs = reasoning.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
+            avgReformulationMs = reformulation.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
             totalCount = allMetrics.size,
             deviceInfo = allMetrics.firstOrNull()?.let { "${it.manufacturer} ${it.model}" } ?: "Unknown"
         )
@@ -123,6 +124,26 @@ class BenchmarksViewModel @Inject constructor(
             resumeRepository.clearPerformanceMetrics()
             loadMetrics()
         }
+    }
+
+    fun getExportCsvContent(): String {
+        val header = "Timestamp,Type,Operation,Duration(ms),Resumes,Embeddings,Device,Context\n"
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        
+        val rows = _metrics.value.joinToString("\n") { metric ->
+            listOf(
+                dateFormat.format(Date(metric.timestamp)),
+                metric.operationType,
+                metric.operationName.replace(",", ";"), // Escape comma
+                metric.durationMs.toString(),
+                metric.resumeCount.toString(),
+                metric.embeddingCount.toString(),
+                "${metric.manufacturer} ${metric.model}",
+                metric.contextData.replace(",", ";") // Escape comma
+            ).joinToString(",")
+        }
+        
+        return header + rows
     }
 }
 

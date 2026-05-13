@@ -54,7 +54,7 @@
     },
     {
       "id": "2:4055476254889062419",
-      "lastPropertyId": "9:7092764599489667545",
+      "lastPropertyId": "15:3927576235975912095",
       "name": "PerformanceMetric",
       "properties": [
         {
@@ -62,28 +62,6 @@
           "name": "id",
           "type": 6,
           "flags": 129
-        },
-        {
-          "id": "2:1786092297734902692",
-          "name": "metricType",
-          "indexId": "1:2485930308883969923",
-          "type": 9,
-          "flags": 2048
-        },
-        {
-          "id": "3:6711880040652861704",
-          "name": "metricName",
-          "type": 9
-        },
-        {
-          "id": "4:3938511334167435999",
-          "name": "value",
-          "type": 8
-        },
-        {
-          "id": "5:8881076244692839274",
-          "name": "unit",
-          "type": 9
         },
         {
           "id": "6:2190973675238701293",
@@ -101,8 +79,35 @@
           "type": 6
         },
         {
-          "id": "9:7092764599489667545",
-          "name": "deviceInfo",
+          "id": "10:1689136329483496741",
+          "name": "operationType",
+          "indexId": "5:2791323983175694555",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "11:7725333011557751632",
+          "name": "operationName",
+          "type": 9
+        },
+        {
+          "id": "12:6967009053084323843",
+          "name": "durationMs",
+          "type": 6
+        },
+        {
+          "id": "13:3756870771864136887",
+          "name": "contextData",
+          "type": 9
+        },
+        {
+          "id": "14:4214757162182347318",
+          "name": "manufacturer",
+          "type": 9
+        },
+        {
+          "id": "15:3927576235975912095",
+          "name": "model",
           "type": 9
         }
       ],
@@ -343,14 +348,22 @@
     }
   ],
   "lastEntityId": "5:2262736522436445208",
-  "lastIndexId": "4:2987950820128288717",
+  "lastIndexId": "5:2791323983175694555",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,
   "modelVersionParserMinimum": 5,
   "retiredEntityUids": [],
-  "retiredIndexUids": [],
-  "retiredPropertyUids": [],
+  "retiredIndexUids": [
+    2485930308883969923
+  ],
+  "retiredPropertyUids": [
+    1786092297734902692,
+    6711880040652861704,
+    3938511334167435999,
+    8881076244692839274,
+    7092764599489667545
+  ],
   "retiredRelationUids": [],
   "version": 1
 }

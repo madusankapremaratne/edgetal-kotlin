@@ -28,16 +28,18 @@ class PerformanceMonitor @Inject constructor(
         name: String,
         durationMs: Long,
         resumeCount: Int = 0,
-        embeddingCount: Int = 0
+        embeddingCount: Int = 0,
+        contextData: String = ""
     ) {
         val metric = PerformanceMetric(
-            metricType = type,
-            metricName = name,
-            value = durationMs.toDouble(),
-            unit = "ms",
+            operationType = type,
+            operationName = name,
+            durationMs = durationMs,
             resumeCount = resumeCount,
             embeddingCount = embeddingCount,
-            deviceInfo = deviceInfo
+            contextData = contextData,
+            manufacturer = Build.MANUFACTURER,
+            model = Build.MODEL
         )
         saveMetric(metric)
     }
@@ -51,12 +53,12 @@ class PerformanceMonitor @Inject constructor(
         resumeCount: Int = 0
     ) {
         val metric = PerformanceMetric(
-            metricType = "storage",
-            metricName = name,
-            value = sizeMb,
-            unit = "MB",
+            operationType = "storage",
+            operationName = name,
+            durationMs = sizeMb.toLong(), // Storing as Long for now
             resumeCount = resumeCount,
-            deviceInfo = deviceInfo
+            manufacturer = Build.MANUFACTURER,
+            model = Build.MODEL
         )
         saveMetric(metric)
     }
@@ -69,11 +71,11 @@ class PerformanceMonitor @Inject constructor(
         tokensPerSecond: Double
     ) {
         val metric = PerformanceMetric(
-            metricType = "inference",
-            metricName = name,
-            value = tokensPerSecond,
-            unit = "t/s",
-            deviceInfo = deviceInfo
+            operationType = "inference",
+            operationName = name,
+            durationMs = (tokensPerSecond * 1000).toLong(), // Store as micro-units if needed
+            manufacturer = Build.MANUFACTURER,
+            model = Build.MODEL
         )
         saveMetric(metric)
     }

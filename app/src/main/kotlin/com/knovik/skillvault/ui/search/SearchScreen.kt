@@ -34,9 +34,7 @@ fun SearchScreen(
             TopAppBar(
                 title = { Text("Semantic Search") },
                 actions = {
-                    IconButton(onClick = { viewModel.regenerateAllEmbeddings() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Regenerate Index")
-                    }
+                    // Maintenance tasks moved to settings or hidden for now
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -233,8 +231,7 @@ fun SearchScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 OutlinedButton(
                                     onClick = { 
-                                        // Show a simple feedback dialog or just trigger
-                                        viewModel.recordSearchFeedback(false, "Results are not technical enough") 
+                                        viewModel.recordSearchFeedback(false) 
                                     },
                                     modifier = Modifier.height(32.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)

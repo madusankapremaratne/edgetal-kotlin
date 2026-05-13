@@ -151,17 +151,18 @@ data class PerformanceMetric(
     var id: Long = 0,
     
     @Index
-    var metricType: String = "", // "ingestion", "retrieval", "storage", "battery"
+    var operationType: String = "", // "ingestion", "retrieval", "agentic_search", "agentic_reasoning"
     
-    var metricName: String = "",
-    var value: Double = 0.0,
-    var unit: String = "", // "ms", "MB", "mAh"
+    var operationName: String = "",
+    var durationMs: Long = 0,
+    var contextData: String = "", // Extra info like query text or candidate count
     
-    var resumeCount: Int = 0, // How many resumes were involved
+    var resumeCount: Int = 0,
     var embeddingCount: Int = 0,
     
     var timestamp: Long = System.currentTimeMillis(),
-    var deviceInfo: String = "", // Device model, OS version for context
+    var manufacturer: String = "",
+    var model: String = "",
 )
 
 /**

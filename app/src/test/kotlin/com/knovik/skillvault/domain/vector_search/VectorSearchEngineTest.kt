@@ -1,6 +1,8 @@
 package com.knovik.skillvault.domain.vector_search
 
 import com.knovik.skillvault.data.entity.ResumeEmbedding
+import com.knovik.skillvault.domain.monitor.PerformanceMonitor
+import org.mockito.kotlin.mock
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.floats.shouldBeGreaterThan
@@ -16,7 +18,8 @@ import kotlin.math.sqrt
  */
 class VectorSearchEngineTest : FreeSpec({
 
-    val searchEngine = VectorSearchEngine()
+    val performanceMonitor = mock<PerformanceMonitor>()
+    val searchEngine = VectorSearchEngine(performanceMonitor)
 
     "Vector Operations" - {
         "cosine similarity should return 1 for identical vectors" {

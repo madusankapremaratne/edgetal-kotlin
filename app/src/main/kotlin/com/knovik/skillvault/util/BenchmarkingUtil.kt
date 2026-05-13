@@ -128,24 +128,23 @@ class BenchmarkingUtil @Inject constructor(
      * Record a performance metric to database.
      */
     suspend fun recordMetric(
-        metricType: String,
-        metricName: String,
-        value: Double,
-        unit: String,
+        operationType: String,
+        operationName: String,
+        durationMs: Long,
     ) = withContext(Dispatchers.IO) {
         try {
             val stats = resumeRepository.getStorageStats()
             val metric = PerformanceMetric(
-                metricType = metricType,
-                metricName = metricName,
-                value = value,
-                unit = unit,
+                operationType = operationType,
+                operationName = operationName,
+                durationMs = durationMs,
                 resumeCount = stats["resumeCount"]?.toInt() ?: 0,
                 embeddingCount = stats["embeddingCount"]?.toInt() ?: 0,
-                deviceInfo = getDeviceInfo(),
+                manufacturer = android.os.Build.MANUFACTURER,
+                model = android.os.Build.MODEL,
             )
             resumeRepository.recordMetric(metric)
-            Timber.d("Recorded metric: $metricName = $value$unit")
+            Timber.d("Recorded metric: $operationName = ${durationMs}ms")
         } catch (e: Exception) {
             Timber.e(e, "Failed to record metric")
         }
