@@ -21,10 +21,8 @@ data class SearchResult(
 )
 
 /**
- * Vector similarity search engine for semantic retrieval.
- * Implements cosine similarity for efficient on-device vector search.
- * 
- * This is the core "Memory" component for SkillVault.
+ * Retrieval Agent (Decide Phase).
+ * Performs high-performance vector similarity search on-device.
  */
 @Singleton
 class VectorSearchEngine @Inject constructor(

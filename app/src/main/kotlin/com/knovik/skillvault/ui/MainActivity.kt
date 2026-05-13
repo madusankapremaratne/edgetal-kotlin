@@ -6,6 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import com.knovik.skillvault.ui.resume_list.ResumeListScreen
 import com.knovik.skillvault.ui.search.SearchScreen
 import com.knovik.skillvault.ui.import_data.ImportDataScreen
+import com.knovik.skillvault.ui.benchmarks.BenchmarksScreen
 import com.knovik.skillvault.ui.theme.SkillVaultTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -45,8 +49,9 @@ class MainActivity : ComponentActivity() {
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     data object ResumeList : Screen("resume_list", "Resumes", Icons.Filled.Home)
     data object Search : Screen("search", "Search", Icons.Filled.Search)
-    data object ImportData : Screen("import_data", "Import", Icons.Filled.Home)
-    data object ResumeDetails : Screen("resume_details/{resumeId}?query={query}&segmentId={segmentId}", "Details", Icons.Filled.Home)
+    data object Benchmarks : Screen("benchmarks", "Benchmarks", Icons.Filled.Build)
+    data object ImportData : Screen("import_data", "Import", Icons.Filled.Add)
+    data object ResumeDetails : Screen("resume_details/{resumeId}?query={query}&segmentId={segmentId}", "Details", Icons.Filled.Info)
 }
 
 /**
@@ -56,7 +61,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val items = listOf(Screen.ResumeList, Screen.Search)
+    val items = listOf(Screen.ResumeList, Screen.Search, Screen.Benchmarks)
     
     Scaffold(
         bottomBar = {
@@ -65,8 +70,6 @@ fun MainScreen() {
                 val currentDestination = navBackStackEntry?.destination
                 
                 items.forEach { screen ->
-                    // For the bottom bar, we only care about the base route for ResumeDetails if it were there, 
-                    // but it's not a main tab.
                     val selected = currentDestination?.hierarchy?.any { 
                         it.route?.startsWith(screen.route.substringBefore("/")) == true 
                     } == true
@@ -108,6 +111,9 @@ fun MainScreen() {
                         navController.navigate(route)
                     }
                 )
+            }
+            composable(Screen.Benchmarks.route) {
+                BenchmarksScreen()
             }
             composable(Screen.ImportData.route) {
                 ImportDataScreen(

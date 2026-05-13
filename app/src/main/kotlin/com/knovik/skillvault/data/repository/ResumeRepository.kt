@@ -269,4 +269,18 @@ class ResumeRepository @Inject constructor(
     suspend fun recordMetric(metric: PerformanceMetric) = withContext(Dispatchers.IO) {
         performanceMetricBox.put(metric)
     }
+
+    /**
+     * Get all performance metrics.
+     */
+    suspend fun getAllPerformanceMetrics(): List<PerformanceMetric> = withContext(Dispatchers.IO) {
+        performanceMetricBox.all
+    }
+
+    /**
+     * Clear all performance metrics.
+     */
+    suspend fun clearPerformanceMetrics() = withContext(Dispatchers.IO) {
+        performanceMetricBox.removeAll()
+    }
 }

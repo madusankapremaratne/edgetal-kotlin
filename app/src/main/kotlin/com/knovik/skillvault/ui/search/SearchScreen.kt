@@ -131,20 +131,48 @@ fun SearchScreen(
                         }
                     }
                 }
+                is SearchUIState.AgenticLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Agent: ${state.step}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                }
                 is SearchUIState.Success -> {
                     Column {
-                        // Stats
+                        // Stats & Agent Info
                         Card(
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (state.reformulatedQuery != null) 
+                                    MaterialTheme.colorScheme.secondaryContainer 
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Results: $resultCount")
-                                Text("Time: ${executionTime}ms")
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Results: $resultCount", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                    Text("Time: ${executionTime}ms")
+                                }
+                                
+                                if (state.reformulatedQuery != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Agent reformulated query to: \"${state.reformulatedQuery}\"",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
                             }
                         }
                         
@@ -156,13 +184,20 @@ fun SearchScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "No results found",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "No results found",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { viewModel.agenticSearch(queryText) }) {
+                                        Text("Try Agentic Search")
+                                    }
+                                }
                             }
                         } else {
                             LazyColumn(
+                                modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.results) { result ->
@@ -176,6 +211,35 @@ fun SearchScreen(
                                             ) 
                                         }
                                     )
+                                }
+                            }
+                            
+                            // Feedback Section
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Satisfied?", style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                FilledTonalButton(
+                                    onClick = { viewModel.recordSearchFeedback(true) },
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                ) {
+                                    Text("Yes", style = MaterialTheme.typography.labelSmall)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                OutlinedButton(
+                                    onClick = { 
+                                        // Show a simple feedback dialog or just trigger
+                                        viewModel.recordSearchFeedback(false, "Results are not technical enough") 
+                                    },
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                ) {
+                                    Text("No, Optimize", style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }

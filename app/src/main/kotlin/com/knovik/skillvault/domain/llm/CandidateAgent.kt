@@ -19,8 +19,9 @@ sealed class AgentStep {
 }
 
 /**
- * An Agentic Candidate Evaluator that uses multi-step reasoning (Chain of Thought)
- * to assess candidate fit for a role.
+ * Reasoning Agent (Act Phase).
+ * Performs deep semantic evaluation of candidates using a local LLM.
+ * Implements Chain-of-Thought reasoning.
  */
 @Singleton
 class CandidateAgent @Inject constructor(
