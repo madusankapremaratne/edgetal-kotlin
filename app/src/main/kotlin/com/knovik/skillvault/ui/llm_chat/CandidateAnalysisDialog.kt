@@ -66,11 +66,22 @@ fun CandidateAnalysisDialog(
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
-                        Text("Analyzing candidate fit... This may take a moment.", style = MaterialTheme.typography.bodySmall)
+                        Text("Starting analysis...", style = MaterialTheme.typography.bodySmall)
+                    }
+                    is ChatUiState.AgenticLoading -> {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        Text(state.step, style = MaterialTheme.typography.bodySmall)
                     }
                     is ChatUiState.Success -> {
-                        Text("Analysis Result:", style = MaterialTheme.typography.titleSmall)
-                        Text(state.response)
+                        if (state.reasoning != null) {
+                            Text("Agent Reasoning:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(state.reasoning, style = MaterialTheme.typography.bodyMedium)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                        Text("Final Verdict:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(state.response, style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                     }
                     is ChatUiState.Error -> {
                         Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
@@ -93,7 +104,7 @@ fun CandidateAnalysisDialog(
             }
         },
         dismissButton = {
-            if (uiState !is ChatUiState.Loading) {
+            if (uiState !is ChatUiState.Loading && uiState !is ChatUiState.AgenticLoading) {
                 TextButton(onClick = onDismiss) {
                     Text("Cancel")
                 }

@@ -1,6 +1,7 @@
 package com.knovik.skillvault.domain.vector_search
 
 import com.knovik.skillvault.data.entity.ResumeEmbedding
+import com.knovik.skillvault.domain.monitor.PerformanceMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -26,7 +27,9 @@ data class SearchResult(
  * This is the core "Memory" component for SkillVault.
  */
 @Singleton
-class VectorSearchEngine @Inject constructor() {
+class VectorSearchEngine @Inject constructor(
+    private val performanceMonitor: PerformanceMonitor
+) {
 
     /**
      * Perform semantic search against a collection of embeddings.
@@ -78,6 +81,13 @@ class VectorSearchEngine @Inject constructor() {
         val endTime = System.currentTimeMillis()
         val executionTimeMs = endTime - startTime
         
+        performanceMonitor.recordLatency(
+            type = "retrieval",
+            name = "Vector Search",
+            durationMs = executionTimeMs,
+            embeddingCount = candidates.size
+        )
+
         Timber.d("Vector search completed in ${executionTimeMs}ms, found ${results.size} results from ${candidates.size} candidates")
 
         // Log performance metrics for benchmarking

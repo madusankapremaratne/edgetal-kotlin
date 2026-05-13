@@ -15,6 +15,7 @@ import com.knovik.skillvault.data.entity.Resume
 import com.knovik.skillvault.data.entity.ResumeEmbedding
 import com.knovik.skillvault.data.repository.ResumeRepository
 import com.knovik.skillvault.domain.embedding.MediaPipeEmbeddingProvider
+import com.knovik.skillvault.domain.monitor.PerformanceMonitor
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,6 +38,7 @@ class EmbeddingIngestionService : Service() {
 
     @Inject lateinit var resumeRepository: ResumeRepository
     @Inject lateinit var embeddingProvider: MediaPipeEmbeddingProvider
+    @Inject lateinit var performanceMonitor: PerformanceMonitor
 
     private val binder = EmbeddingBinder()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -185,7 +187,13 @@ class EmbeddingIngestionService : Service() {
 
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
-        android.util.Log.d("EdgeScoutExperiment", "EMBEDDING_GENERATION_TIME, ${resume.id}, $duration")
+        
+        performanceMonitor.recordLatency(
+            type = "ingestion",
+            name = "Manual Ingestion",
+            durationMs = duration,
+            embeddingCount = embeddings.size
+        )
 
         Timber.d("Generated ${embeddings.size} embeddings for resume ${resume.id}")
         return embeddings
@@ -202,6 +210,7 @@ class EmbeddingIngestionWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val resumeRepository: ResumeRepository,
     private val embeddingProvider: MediaPipeEmbeddingProvider,
+    private val performanceMonitor: PerformanceMonitor,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): ListenableWorker.Result {
@@ -293,7 +302,13 @@ class EmbeddingIngestionWorker @AssistedInject constructor(
 
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
-        android.util.Log.d("EdgeScoutExperiment", "EMBEDDING_GENERATION_TIME_WORKER, ${resume.id}, $duration")
+        
+        performanceMonitor.recordLatency(
+            type = "ingestion",
+            name = "Worker Ingestion",
+            durationMs = duration,
+            embeddingCount = embeddings.size
+        )
 
         return embeddings
     }
