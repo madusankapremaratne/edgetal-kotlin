@@ -103,34 +103,50 @@ cd skillvault-kotlin
 
 Since `gemma-2b` is large (\~1.3GB), it is not included in the repo. We recommend pushing it directly to the device storage to avoid slow build times.
 
-**Step 1: Push the model via ADB**
-Run this command in your terminal to copy the model to the app's data directory:
+**Step 1: Push the model to temporary storage**
+Push the model to `/data/local/tmp/` first (the most reliable location for large files):
 
 ```bash
-# MacOS / Linux / Windows PowerShell
-adb push gemma-2b-it-cpu-int4.bin /storage/emulated/0/Android/data/com.knovik.skillvault/files/
+adb push gemma-2b-it-cpu-int4.bin /data/local/tmp/
 ```
 
+**Step 2: Move to App Internal Storage**
+The app expects the model in its private internal storage for performance and permissions. Use `run-as` to move it:
+
+```bash
+# Create the directory
+adb shell "run-as com.knovik.skillvault mkdir -p /data/data/com.knovik.skillvault/files"
+
+# Copy the file
+adb shell "run-as com.knovik.skillvault cp /data/local/tmp/gemma-2b-it-cpu-int4.bin /data/data/com.knovik.skillvault/files/"
+
+# Verify (optional)
+adb shell "run-as com.knovik.skillvault ls -lh /data/data/com.knovik.skillvault/files/"
+```
+
+**Step 3: Cleanup**
+Remove the temporary file from `/data/local/tmp/`:
+
+```bash
+adb shell rm /data/local/tmp/gemma-2b-it-cpu-int4.bin
+```
+
+> [!TIP]
+> If you have multiple devices connected, add `-s <device-id>` (e.g., `adb -s 2B131FDH3000XK push ...`) to specify the target.
+
 **Step 2: Update Code to Read from Storage**
-In `TalentScoutAgent.kt`, ensure you are loading the model from the correct path:
+In `LlmInferenceProvider.kt`, the app is configured to load the model from the internal `filesDir`:
 
 ```kotlin
-val modelPath = context.getExternalFilesDir(null)?.absolutePath + "/gemma-2b-it-cpu-int4.bin"
-val modelFile = File(modelPath)
+// LlmInferenceProvider.kt
+val sourceFile = File(context.filesDir, "gemma-2b-it-cpu-int4.bin")
 
-if (modelFile.exists()) {
-    // Load from device storage (Fast Dev Cycle)
-    llmInference = LlmInference.createFromOptions(context, 
-        LlmInference.Options.builder()
-            .setModelPath(modelPath)
-            .build())
-} else {
-    // Fallback to Assets (Production Build)
-    llmInference = LlmInference.createFromOptions(context, 
-        LlmInference.Options.builder()
-            .setModelPath("gemma-2b-it-cpu-int4.bin") 
-            .build())
-}
+val options = LlmInference.LlmInferenceOptions.builder()
+    .setModelPath(sourceFile.absolutePath)
+    .setMaxTokens(256)
+    .build()
+
+llmInference = LlmInference.createFromOptions(context, options)
 ```
 
 ### 4\. Build & Run
