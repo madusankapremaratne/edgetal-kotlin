@@ -1,8 +1,8 @@
-# SkillVault Architecture Documentation
+# EdgeTal Architecture Documentation
 
 ## Overview
 
-SkillVault is built following clean architecture principles with clear separation of concerns across three layers: Presentation (UI), Domain (Business Logic), and Data.
+EdgeTal is built following clean architecture principles with clear separation of concerns across three layers: Presentation (UI), Domain (Business Logic), and Data.
 
 ## Architecture Layers
 

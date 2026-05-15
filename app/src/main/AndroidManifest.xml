@@ -17,14 +17,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
-        android:name=".SkillVaultApplication"
+        android:name=".EdgeTalApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_descriptor"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SkillVault"
+        android:theme="@style/Theme.EdgeTal"
         android:usesCleartextTraffic="false"
         android:largeHeap="true"
         android:extractNativeLibs="true"
@@ -34,7 +34,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SkillVault">
+            android:theme="@style/Theme.EdgeTal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

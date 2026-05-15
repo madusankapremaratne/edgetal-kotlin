@@ -14,7 +14,7 @@ import javax.inject.Singleton
  * Wrapper for MediaPipe Text Embedder.
  * Handles on-device text embedding generation for semantic search.
  * 
- * This is the core "Brain" component for SkillVault.
+ * This is the core "Brain" component for EdgeTal.
  */
 @Singleton
 class MediaPipeEmbeddingProvider @Inject constructor(

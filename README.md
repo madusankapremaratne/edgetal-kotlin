@@ -1,14 +1,14 @@
-# EdgeScout: On-Device Agentic RAG for Talent Discovery
+# EdgeTal: On-Device Agentic RAG for Talent Discovery
 
    
 
-**EdgeScout** (Repo: `skillvault-kotlin`) is a native Android research prototype that demonstrates **Agentic Retrieval-Augmented Generation (RAG)** entirely on the edge.
+**EdgeTal** (Repo: `edgetal-kotlin`) is a native Android research prototype that demonstrates **Agentic Retrieval-Augmented Generation (RAG)** entirely on the edge.
 
 It acts as an autonomous "Pocket Recruiter," allowing users to index thousands of resumes, perform semantic searches ("Find a leader with Python skills"), and generate deep profile analyses using a quantized Large Language Model (LLM)—all without a single byte of data leaving the device.
 
 ## 🚀 Key Innovation: The "Talent Scout Agent"
 
-Unlike passive keyword search tools, EdgeScout operates as an agentic system with a three-stage cognitive loop:
+Unlike passive keyword search tools, EdgeTal operates as an agentic system with a three-stage cognitive loop:
 
 1.  **Plan (Query Translation)**: Maps abstract intents (e.g., "Creative roles") to high-dimensional vector space.
 2.  **Decide (Vector Ranking)**: Autonomously scans a local **ObjectBox** vector store to rank candidates by semantic fit.
@@ -59,7 +59,7 @@ Validated on **Samsung Galaxy M21 (Exynos 9611)** vs. **High-Performance Simulat
 ## 📂 Project Structure
 
 ```bash
-EdgeScout/
+EdgeTal/
 ├── app/
 │   ├── src/main/assets/
 │   │   ├── text_embedder.tflite       # For Vector Search
@@ -90,8 +90,8 @@ EdgeScout/
 ### 1\. Clone & Sync
 
 ```bash
-git clone https://github.com/madusankapremaratne/skillvault-kotlin.git
-cd skillvault-kotlin
+git clone https://github.com/madusankapremaratne/edgetal-kotlin.git
+cd edgetal-kotlin
 ```
 
 ### 2\. Download the Models
@@ -194,4 +194,4 @@ MIT License.
 
 **Project Lead**: Madusanka Premaratne Rathnayake Mudiyanselage
 **Contact**: [rmmpremaratne@gmail.com]
-**GitHub Issues**: [https://github.com/madusankapremaratne/skillvault-kotlin/issues](https://github.com/madusankapremaratne/skillvault-kotlin/issues)
+**GitHub Issues**: [https://github.com/madusankapremaratne/edgetal-kotlin/issues](https://github.com/madusankapremaratne/edgetal-kotlin/issues)

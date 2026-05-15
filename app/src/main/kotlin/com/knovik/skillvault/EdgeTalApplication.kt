@@ -11,7 +11,7 @@ import javax.inject.Inject
  * Application entry point with Hilt dependency injection support.
  */
 @HiltAndroidApp
-class SkillVaultApplication : Application(), Configuration.Provider {
+class EdgeTalApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -22,11 +22,11 @@ class SkillVaultApplication : Application(), Configuration.Provider {
         // Initialize Timber for logging
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
-            Timber.d("SkillVault Application initialized in DEBUG mode")
+            Timber.d("EdgeTal Application initialized in DEBUG mode")
         } else {
             // In production, you might want custom crash reporting
             Timber.plant(CrashReportingTree())
-            Timber.d("SkillVault Application initialized in RELEASE mode")
+            Timber.d("EdgeTal Application initialized in RELEASE mode")
         }
         
         // Initialize analytics, crash reporting, etc.

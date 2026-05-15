@@ -1,8 +1,8 @@
-# SkillVault - Quick Start Guide
+# EdgeTal - Quick Start Guide
 
 ## Project Structure Summary
 
-This is a **production-ready Android project** implementing the SkillVault research paper on edge AI for career agents. All code follows industry best practices.
+This is a **production-ready Android project** implementing the EdgeTal research paper on edge AI for career agents. All code follows industry best practices.
 
 ## Files Created
 
@@ -16,7 +16,7 @@ app/proguard-rules.pro             # Obfuscation rules for release builds
 
 ### Core Application
 ```
-SkillVaultApplication.kt           # App entry point with Hilt initialization
+EdgeTalApplication.kt           # App entry point with Hilt initialization
 AndroidManifest.xml                # Android configuration and permissions
 ```
 
@@ -82,7 +82,7 @@ docs/ARCHITECTURE.md               # Detailed architecture documentation
 ### 1. Open in Android Studio
 ```bash
 # Clone (when repo is created)
-git clone https://github.com/knovik/skillvault.git
+git clone https://github.com/madusankapremaratne/edgetal-kotlin.git
 cd skillvault
 
 # Open in Android Studio
@@ -254,7 +254,7 @@ file.writeText(json)
 
 ### Enable Verbose Logging
 ```kotlin
-// In SkillVaultApplication.onCreate()
+// In EdgeTalApplication.onCreate()
 if (BuildConfig.DEBUG) {
     Timber.plant(Timber.DebugTree())
 }
@@ -314,7 +314,7 @@ Before publishing to Play Store:
 
 ## Support & Contribution
 
-This is research code for the SkillVault project published by Knovik. For questions:
+This is research code for the EdgeTal project published by Knovik. For questions:
 
 - Check `docs/ARCHITECTURE.md` for detailed design
 - Review unit tests for usage examples

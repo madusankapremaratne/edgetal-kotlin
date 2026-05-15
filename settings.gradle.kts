@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SkillVault"
+rootProject.name = "EdgeTal"
 include(":app")

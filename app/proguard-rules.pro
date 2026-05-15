@@ -1,4 +1,4 @@
-# SkillVault ProGuard Rules
+# EdgeTal ProGuard Rules
 # Keep all code needed for production while optimizing size
 
 # Keep MediaPipe classes

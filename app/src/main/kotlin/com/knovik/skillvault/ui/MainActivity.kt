@@ -24,11 +24,11 @@ import com.knovik.skillvault.ui.resume_list.ResumeListScreen
 import com.knovik.skillvault.ui.search.SearchScreen
 import com.knovik.skillvault.ui.import_data.ImportDataScreen
 import com.knovik.skillvault.ui.benchmarks.BenchmarksScreen
-import com.knovik.skillvault.ui.theme.SkillVaultTheme
+import com.knovik.skillvault.ui.theme.EdgeTalTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Main Activity for SkillVault app.
+ * Main Activity for EdgeTal app.
  * Uses Jetpack Compose with bottom navigation.
  */
 @AndroidEntryPoint
@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SkillVaultTheme {
+            EdgeTalTheme {
                 MainScreen()
             }
         }

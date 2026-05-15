@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.SkillVault" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.EdgeTal" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
     </style>
 </resources>
