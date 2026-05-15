@@ -24,7 +24,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import timber.log.Timber
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.knovik.skillvault.data.entity.PerformanceMetric
 import java.text.SimpleDateFormat
 import java.util.*
@@ -47,19 +50,23 @@ fun BenchmarksScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Empirical Benchmarks") },
+                title = { Text("Benchmarks") },
                 actions = {
                     IconButton(onClick = { showTable = !showTable }) {
                         Icon(
-                            if (showTable) Icons.Default.List else Icons.Default.Info, 
+                            if (showTable) Icons.Default.Info else Icons.Default.List, 
                             contentDescription = "Toggle View"
                         )
                     }
                     IconButton(onClick = { 
                         val csv = viewModel.getExportCsvContent()
                         clipboardManager.setText(AnnotatedString(csv))
+                        
+                        // Log to Logcat for easy extraction
+                        Timber.i("BENCHMARK_DATA_START\n$csv\nBENCHMARK_DATA_END")
+                        
                         scope.launch {
-                            snackbarHostState.showSnackbar("CSV copied to clipboard")
+                            snackbarHostState.showSnackbar("CSV copied to clipboard and logged to Logcat")
                         }
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Export CSV")
@@ -91,7 +98,15 @@ fun BenchmarksScreen(
             }
             
             if (showTable) {
-                BenchmarkTableView(metrics)
+                if (metrics.isEmpty() && !isBenchmarking) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Button(onClick = { viewModel.runAutoBenchmark() }) {
+                            Text("Run Initial Benchmark Suite")
+                        }
+                    }
+                } else {
+                    BenchmarkTableView(metrics)
+                }
             } else {
                 Column(modifier = Modifier.padding(16.dp)) {
                     SummaryCard(summary)
@@ -118,41 +133,40 @@ fun BenchmarksScreen(
 
 @Composable
 fun BenchmarkTableView(metrics: List<PerformanceMetric>) {
-    val scrollState = rememberScrollState()
+    val horizontalScrollState = rememberScrollState()
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .horizontalScroll(scrollState)
-            .padding(8.dp)
-    ) {
-        // Table Header
-        Row(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-                .border(1.dp, MaterialTheme.colorScheme.outline)
-        ) {
-            TableCell("Type", weight = 0.15f, isHeader = true)
-            TableCell("Operation Name", weight = 0.35f, isHeader = true)
-            TableCell("Duration", weight = 0.15f, isHeader = true)
-            TableCell("R/E", weight = 0.15f, isHeader = true)
-            TableCell("Time", weight = 0.2f, isHeader = true)
-        }
+    // Using a Box to allow horizontal scrolling of the entire table area
+    Box(modifier = Modifier.fillMaxSize().horizontalScroll(horizontalScrollState)) {
+        Column(modifier = Modifier.width(600.dp)) { // Fixed width for table to ensure columns don't squash
+            // Table Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .border(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                TableCell("Type", weight = 0.15f, isHeader = true)
+                TableCell("Operation", weight = 0.4f, isHeader = true)
+                TableCell("MS", weight = 0.15f, isHeader = true)
+                TableCell("R/E", weight = 0.15f, isHeader = true)
+                TableCell("Time", weight = 0.15f, isHeader = true)
+            }
 
-        // Table Rows
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
-            items(metrics.reversed()) { metric ->
-                val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    TableCell(metric.operationType, weight = 0.15f)
-                    TableCell(metric.operationName, weight = 0.35f)
-                    TableCell("${metric.durationMs}ms", weight = 0.15f)
-                    TableCell("${metric.resumeCount}/${metric.embeddingCount}", weight = 0.15f)
-                    TableCell(dateFormat.format(Date(metric.timestamp)), weight = 0.2f)
+            // Table Rows
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(metrics.reversed()) { metric ->
+                    val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        TableCell(metric.operationType, weight = 0.15f)
+                        TableCell(metric.operationName, weight = 0.4f)
+                        TableCell("${metric.durationMs}", weight = 0.15f)
+                        TableCell("${metric.resumeCount}/${metric.embeddingCount}", weight = 0.15f)
+                        TableCell(dateFormat.format(Date(metric.timestamp)), weight = 0.15f)
+                    }
                 }
             }
         }
@@ -169,9 +183,8 @@ fun RowScope.TableCell(
         text = text,
         modifier = Modifier
             .weight(weight)
-            .padding(8.dp)
-            .widthIn(min = 100.dp),
-        style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) 
+            .padding(8.dp),
+        style = if (isHeader) MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold) 
                 else MaterialTheme.typography.bodySmall,
         textAlign = TextAlign.Start,
         maxLines = 2
@@ -239,13 +252,6 @@ fun MetricItem(metric: PerformanceMetric) {
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
-                if (metric.contextData.isNotBlank()) {
-                    Text(
-                        text = metric.contextData,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
             }
             
             Text(

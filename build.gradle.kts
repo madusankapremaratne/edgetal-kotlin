@@ -38,7 +38,7 @@ ext {
     set("moshi_version", "1.15.0")
     
     // Machine Learning / MediaPipe
-    set("mediapipe_version", "0.10.0")
+    set("mediapipe_version", "0.10.18")
     
     // Coroutines & Async
     set("coroutines_version", "1.7.3")

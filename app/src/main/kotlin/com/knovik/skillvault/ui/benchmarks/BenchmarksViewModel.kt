@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,6 +21,7 @@ class BenchmarksViewModel @Inject constructor(
     private val embeddingProvider: com.knovik.skillvault.domain.embedding.MediaPipeEmbeddingProvider,
     private val vectorSearchEngine: com.knovik.skillvault.domain.vector_search.VectorSearchEngine,
     private val searchAgent: com.knovik.skillvault.domain.llm.SearchAgent,
+    private val llmProvider: com.knovik.skillvault.domain.llm.LlmInferenceProvider,
     private val performanceMonitor: com.knovik.skillvault.domain.monitor.PerformanceMonitor
 ) : ViewModel() {
 
@@ -47,8 +51,9 @@ class BenchmarksViewModel @Inject constructor(
             try {
                 _isBenchmarking.value = true
                 
-                // Ensure provider is initialized
+                // Ensure providers are initialized
                 embeddingProvider.initialize()
+                llmProvider.initialize()
 
                 for (query in testQueries) {
                     Timber.d("Benchmarking query: $query")
@@ -62,7 +67,7 @@ class BenchmarksViewModel @Inject constructor(
                     // 2. Static Vector Search
                     val startTimeVector = System.currentTimeMillis()
                     val embedding = embeddingProvider.embedText(query).getOrThrow()
-                    val candidates = resumeRepository.getAllEmbeddings()
+                    val candidates = resumeRepository.getAllEmbeddings().take(1500) // Limit to 1500 for experiment
                     val results = vectorSearchEngine.search(embedding, candidates)
                     val durationVector = System.currentTimeMillis() - startTimeVector
                     performanceMonitor.recordLatency("retrieval", "Static Search: $query", durationVector, results.size)

@@ -42,7 +42,7 @@ class SearchAgent @Inject constructor(
         userFeedback: String?
     ): String {
         val resultContext = if (results.isNotEmpty()) {
-            results.take(3).joinToString("\n") { "- ${it.segmentText.take(100)}..." }
+            results.take(2).joinToString("\n") { "- ${it.segmentText.take(70)}..." }
         } else {
             "No relevant results found."
         }
@@ -64,16 +64,18 @@ class SearchAgent @Inject constructor(
             $resultContext
             
             TASK: 
-            Analyze why the original query might be failing or how it could be improved to find better candidates.
-            Generate a single, optimized search query that is more descriptive and uses better keywords.
+            Analyze the mismatch and generate a single, optimized search query.
+            The optimized query must be a natural language description of the ideal candidate.
             
-            INSTRUCTIONS:
-            1. [ANALYSIS]: Briefly analyze the mismatch.
-            2. [NEW_QUERY]: The improved search string.
+            CRITICAL CONSTRAINTS:
+            - DO NOT use keyword-stuffing (e.g., "skills; jobs; openings").
+            - DO NOT include your analysis or explanation in the NEW_QUERY section.
+            - DO NOT hallucinate context not present in the original query or results.
+            - ONLY provide a semantic, descriptive query.
             
             Format:
-            ANALYSIS: (your analysis)
-            NEW_QUERY: (the new query string only)
+            ANALYSIS: (1 sentence why the change is needed)
+            NEW_QUERY: (the optimized query string only)
             <end_of_turn>
             <start_of_turn>model
             ANALYSIS:
@@ -81,13 +83,20 @@ class SearchAgent @Inject constructor(
     }
 
     private fun parseReformulatedQuery(response: String, originalQuery: String): String {
-        val newQuery = response.substringAfter("NEW_QUERY:", "").trim()
-        return if (newQuery.isNotEmpty()) {
-            // Clean up any quotes or prefixes the model might have added
-            newQuery.removeSurrounding("\"").removeSurrounding("'")
+        // Look specifically for NEW_QUERY tag
+        val newQuery = response
+            .substringAfter("NEW_QUERY:", "")
+            .lines()
+            .firstOrNull { it.isNotBlank() }
+            ?.trim()
+            ?.removeSurrounding("\"")
+            ?.removeSurrounding("'")
+            ?.take(150) // Hard cap to prevent runaway output
+        
+        return if (!newQuery.isNullOrBlank() && newQuery != originalQuery) {
+            newQuery
         } else {
-            // Fallback: if model just gave text, try to extract the last line or stay original
-            if (response.lines().last().isNotEmpty()) response.lines().last() else originalQuery
+            originalQuery
         }
     }
 }

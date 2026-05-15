@@ -27,6 +27,7 @@
         android:theme="@style/Theme.SkillVault"
         android:usesCleartextTraffic="false"
         android:largeHeap="true"
+        android:extractNativeLibs="true"
         tools:targetApi="33">
 
         <!-- Main Activity -->

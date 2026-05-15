@@ -2,11 +2,11 @@ package com.knovik.skillvault.domain.llm
 
 import android.content.Context
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
@@ -15,95 +15,86 @@ import javax.inject.Singleton
 
 /**
  * Provider for on-device LLM inference using MediaPipe and Gemma 2.
+ * Updated for MediaPipe 0.10.18+ Session API.
  */
 @Singleton
 class LlmInferenceProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private var llmInference: LlmInference? = null
+    private var llmSession: LlmInferenceSession? = null
     private val modelFileName = "gemma-2b-it-cpu-int4.bin"
+    private val initializationMutex = Mutex()
 
     /**
-     * Initialize the LLM engine.
-     * This is a heavy operation and should be done in background.
-     * 
-     * @return Result indicating success or failure
+     * Initialize the LLM engine and session.
      */
     suspend fun initialize(): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (llmInference != null) return@withContext Result.success(Unit)
+        initializationMutex.withLock {
+            try {
+                if (llmSession != null) return@withLock Result.success(Unit)
 
-            // 1. Check if model exists in filesDir (where user pushed it)
-            val sourceFile = File(context.filesDir, modelFileName)
-            
-            if (!sourceFile.exists()) {
-                 return@withContext Result.failure(
-                    IllegalStateException("Model file not found. Please push '$modelFileName' to ${context.filesDir.absolutePath}")
-                )
-            }
-
-            // 2. Ensure a writable cache directory exists for the engine to use for its internal artifacts
-            // We don't move the model there, we just make sure the dir exists.
-            val cacheDir = File(context.cacheDir, "llm_cache")
-            if (!cacheDir.exists()) {
-                cacheDir.mkdirs()
-            }
-
-            // 3. Clean up any stale cache artifacts that might have bad permissions from previous runs
-            val cacheArtifact = File(context.cacheDir, "$modelFileName.cache")
-            if (cacheArtifact.exists()) {
-                try {
-                    cacheArtifact.delete()
-                } catch (e: Exception) {
-                    Timber.w("Could not delete cache artifact: ${e.message}")
+                val sourceFile = File(context.filesDir, modelFileName)
+                if (!sourceFile.exists()) {
+                    return@withLock Result.failure(
+                        IllegalStateException("Model file not found. Please push '$modelFileName' to ${context.filesDir.absolutePath}")
+                    )
                 }
+
+                // 1. Initialize the base engine
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(sourceFile.absolutePath)
+                    .setMaxTokens(512)
+                    .setErrorListener { error: RuntimeException -> 
+                        Timber.e("Native LLM Error: ${error.message}")
+                    }
+                    .build()
+
+                val inference = LlmInference.createFromOptions(context, options)
+                llmInference = inference
+
+                // 2. Initialize the session with generation parameters
+                val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
+                    .setTemperature(0.7f)
+                    .setRandomSeed(42)
+                    .build()
+
+                llmSession = LlmInferenceSession.createFromOptions(inference, sessionOptions)
+                
+                Timber.d("LLM Inference and Session initialized successfully")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize LLM Inference")
+                Result.failure(e)
             }
-
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(sourceFile.absolutePath) // Point directly to filesDir
-                .setMaxTokens(256)
-                .setTopK(40)
-                .setTemperature(0.7f)
-                .setRandomSeed(42)
-                .build()
-
-            llmInference = LlmInference.createFromOptions(context, options)
-            Timber.d("LLM Inference initialized successfully")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to initialize LLM Inference")
-            Result.failure(e)
         }
     }
 
     /**
      * Generate a response for the given prompt.
-     * 
-     * @param prompt The input prompt
-     * @return The generated text response
      */
     suspend fun generateResponse(prompt: String): String = withContext(Dispatchers.IO) {
         try {
-            if (llmInference == null) {
+            if (llmSession == null) {
                 val initResult = initialize()
                 if (initResult.isFailure) throw initResult.exceptionOrNull()!!
             }
             
-            llmInference?.generateResponse(prompt) ?: throw IllegalStateException("LLM not initialized")
+            // In 0.10.18+, you add the query chunk first, then generate the response
+            llmSession?.addQueryChunk(prompt)
+            val result = llmSession?.generateResponse()
+            if (result == null) {
+                Timber.e("LLM Session returned null response")
+                return@withContext ""
+            }
+            result
         } catch (e: Exception) {
             Timber.e(e, "LLM generation failed")
             throw e
         }
     }
 
-    /**
-     * Check if the model file exists on device.
-     */
     fun isModelAvailable(): Boolean {
         return File(context.filesDir, modelFileName).exists()
-    }
-    
-    fun getModelPath(): String {
-        return File(context.filesDir, modelFileName).absolutePath
     }
 }
