@@ -46,6 +46,9 @@ data class Resume(
     var processingStatus: String = "pending", // pending, processing, completed, failed
     var errorMessage: String = "", // If processing failed
     
+    // Benchmarking & Evaluation
+    var category: String = "", // Job category or position for ground-truth validation
+    
     // Storage efficiency
     var textHash: String = "", // SHA-256 of rawText to detect duplicates
 )
@@ -159,6 +162,7 @@ data class PerformanceMetric(
     
     var resumeCount: Int = 0,
     var embeddingCount: Int = 0,
+    var precision: Double = 0.0, // Precision score for this operation (e.g., Precision@5)
     
     var timestamp: Long = System.currentTimeMillis(),
     var manufacturer: String = "",

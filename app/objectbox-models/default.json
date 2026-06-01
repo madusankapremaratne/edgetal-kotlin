@@ -54,7 +54,7 @@
     },
     {
       "id": "2:4055476254889062419",
-      "lastPropertyId": "15:3927576235975912095",
+      "lastPropertyId": "16:2799625934072717972",
       "name": "PerformanceMetric",
       "properties": [
         {
@@ -109,13 +109,18 @@
           "id": "15:3927576235975912095",
           "name": "model",
           "type": 9
+        },
+        {
+          "id": "16:2799625934072717972",
+          "name": "precision",
+          "type": 8
         }
       ],
       "relations": []
     },
     {
       "id": "3:4745040415549084472",
-      "lastPropertyId": "21:2682769419137912700",
+      "lastPropertyId": "22:1827402027186924968",
       "name": "Resume",
       "properties": [
         {
@@ -224,6 +229,11 @@
         {
           "id": "21:2682769419137912700",
           "name": "textHash",
+          "type": 9
+        },
+        {
+          "id": "22:1827402027186924968",
+          "name": "category",
           "type": 9
         }
       ],

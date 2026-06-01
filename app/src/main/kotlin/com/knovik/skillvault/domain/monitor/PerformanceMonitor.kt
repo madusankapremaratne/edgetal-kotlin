@@ -29,6 +29,7 @@ class PerformanceMonitor @Inject constructor(
         durationMs: Long,
         resumeCount: Int = 0,
         embeddingCount: Int = 0,
+        precision: Double = 0.0,
         contextData: String = ""
     ) {
         val metric = PerformanceMetric(
@@ -37,6 +38,7 @@ class PerformanceMonitor @Inject constructor(
             durationMs = durationMs,
             resumeCount = resumeCount,
             embeddingCount = embeddingCount,
+            precision = precision,
             contextData = contextData,
             manufacturer = Build.MANUFACTURER,
             model = Build.MODEL

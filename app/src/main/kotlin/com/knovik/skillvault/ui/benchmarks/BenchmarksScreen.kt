@@ -50,7 +50,7 @@ fun BenchmarksScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Benchmarks") },
+                title = { Text("PhD Benchmarks") },
                 actions = {
                     IconButton(onClick = { showTable = !showTable }) {
                         Icon(
@@ -66,7 +66,7 @@ fun BenchmarksScreen(
                         Timber.i("BENCHMARK_DATA_START\n$csv\nBENCHMARK_DATA_END")
                         
                         scope.launch {
-                            snackbarHostState.showSnackbar("CSV copied to clipboard and logged to Logcat")
+                            snackbarHostState.showSnackbar("CSV copied and logged to Logcat")
                         }
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Export CSV")
@@ -101,7 +101,7 @@ fun BenchmarksScreen(
                 if (metrics.isEmpty() && !isBenchmarking) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Button(onClick = { viewModel.runAutoBenchmark() }) {
-                            Text("Run Initial Benchmark Suite")
+                            Text("Run 15-Query Evaluation Suite")
                         }
                     }
                 } else {
@@ -112,7 +112,15 @@ fun BenchmarksScreen(
                     SummaryCard(summary)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Recent Operations",
+                        text = "Precision Comparison",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PrecisionComparisonCard(summary)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Recent Metrics",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -135,9 +143,8 @@ fun BenchmarksScreen(
 fun BenchmarkTableView(metrics: List<PerformanceMetric>) {
     val horizontalScrollState = rememberScrollState()
     
-    // Using a Box to allow horizontal scrolling of the entire table area
     Box(modifier = Modifier.fillMaxSize().horizontalScroll(horizontalScrollState)) {
-        Column(modifier = Modifier.width(600.dp)) { // Fixed width for table to ensure columns don't squash
+        Column(modifier = Modifier.width(700.dp)) { 
             // Table Header
             Row(
                 modifier = Modifier
@@ -146,10 +153,11 @@ fun BenchmarkTableView(metrics: List<PerformanceMetric>) {
                     .border(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 TableCell("Type", weight = 0.15f, isHeader = true)
-                TableCell("Operation", weight = 0.4f, isHeader = true)
-                TableCell("MS", weight = 0.15f, isHeader = true)
-                TableCell("R/E", weight = 0.15f, isHeader = true)
-                TableCell("Time", weight = 0.15f, isHeader = true)
+                TableCell("Operation", weight = 0.35f, isHeader = true)
+                TableCell("MS", weight = 0.12f, isHeader = true)
+                TableCell("P@5", weight = 0.12f, isHeader = true)
+                TableCell("R/E", weight = 0.13f, isHeader = true)
+                TableCell("Time", weight = 0.13f, isHeader = true)
             }
 
             // Table Rows
@@ -162,10 +170,11 @@ fun BenchmarkTableView(metrics: List<PerformanceMetric>) {
                             .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         TableCell(metric.operationType, weight = 0.15f)
-                        TableCell(metric.operationName, weight = 0.4f)
-                        TableCell("${metric.durationMs}", weight = 0.15f)
-                        TableCell("${metric.resumeCount}/${metric.embeddingCount}", weight = 0.15f)
-                        TableCell(dateFormat.format(Date(metric.timestamp)), weight = 0.15f)
+                        TableCell(metric.operationName, weight = 0.35f)
+                        TableCell("${metric.durationMs}", weight = 0.12f)
+                        TableCell("%.2f".format(metric.precision), weight = 0.12f)
+                        TableCell("${metric.resumeCount}/${metric.embeddingCount}", weight = 0.13f)
+                        TableCell(dateFormat.format(Date(metric.timestamp)), weight = 0.13f)
                     }
                 }
             }
@@ -203,16 +212,42 @@ fun SummaryCard(summary: BenchmarkSummary) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryStat("Ingestion", "${summary.avgIngestionMs.toInt()}ms")
-                SummaryStat("Retrieval", "${summary.avgRetrievalMs.toInt()}ms")
+                SummaryStat("Avg Ingestion", "${summary.avgIngestionMs.toInt()}ms")
+                SummaryStat("Avg Retrieval", "${summary.avgRetrievalMs.toInt()}ms")
+                SummaryStat("Avg Agentic", "${summary.avgAgenticMs.toInt()}ms")
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun PrecisionComparisonCard(summary: BenchmarkSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryStat("Reasoning", "${summary.avgReasoningMs.toInt()}ms")
-                SummaryStat("Reformulate", "${summary.avgReformulationMs.toInt()}ms")
+                SummaryStat("Mean P (Baseline)", "%.2f".format(summary.meanPrecisionBaseline))
+                SummaryStat("Mean P (Static)", "%.2f".format(summary.meanPrecisionStatic))
+                SummaryStat("Mean P (Agentic)", "%.2f".format(summary.meanPrecisionAgentic))
+            }
+            
+            val improvement = if (summary.meanPrecisionStatic > 0) {
+                ((summary.meanPrecisionAgentic - summary.meanPrecisionStatic) / summary.meanPrecisionStatic * 100)
+            } else 0.0
+            
+            if (improvement > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Agentic Improvement: +%.1f%%".format(improvement),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -222,7 +257,7 @@ fun SummaryCard(summary: BenchmarkSummary) {
 fun SummaryStat(label: String, value: String) {
     Column {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
-        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -248,7 +283,7 @@ fun MetricItem(metric: PerformanceMetric) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${metric.operationType} | ${dateFormat.format(Date(metric.timestamp))}",
+                    text = "${metric.operationType} | Precision: %.2f".format(metric.precision),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )

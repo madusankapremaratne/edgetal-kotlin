@@ -3,8 +3,15 @@ package com.knovik.skillvault.ui.benchmarks
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.knovik.skillvault.data.entity.PerformanceMetric
+import com.knovik.skillvault.data.entity.Resume
 import com.knovik.skillvault.data.repository.ResumeRepository
+import com.knovik.skillvault.domain.embedding.MediaPipeEmbeddingProvider
+import com.knovik.skillvault.domain.llm.LlmInferenceProvider
+import com.knovik.skillvault.domain.llm.SearchAgent
+import com.knovik.skillvault.domain.monitor.PerformanceMonitor
+import com.knovik.skillvault.domain.vector_search.VectorSearchEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,11 +25,11 @@ import javax.inject.Inject
 @HiltViewModel
 class BenchmarksViewModel @Inject constructor(
     private val resumeRepository: ResumeRepository,
-    private val embeddingProvider: com.knovik.skillvault.domain.embedding.MediaPipeEmbeddingProvider,
-    private val vectorSearchEngine: com.knovik.skillvault.domain.vector_search.VectorSearchEngine,
-    private val searchAgent: com.knovik.skillvault.domain.llm.SearchAgent,
-    private val llmProvider: com.knovik.skillvault.domain.llm.LlmInferenceProvider,
-    private val performanceMonitor: com.knovik.skillvault.domain.monitor.PerformanceMonitor
+    private val embeddingProvider: MediaPipeEmbeddingProvider,
+    private val vectorSearchEngine: VectorSearchEngine,
+    private val searchAgent: SearchAgent,
+    private val llmProvider: LlmInferenceProvider,
+    private val performanceMonitor: PerformanceMonitor
 ) : ViewModel() {
 
     private val _metrics = MutableStateFlow<List<PerformanceMetric>>(emptyList())
@@ -34,12 +41,47 @@ class BenchmarksViewModel @Inject constructor(
     private val _isBenchmarking = MutableStateFlow(false)
     val isBenchmarking: StateFlow<Boolean> = _isBenchmarking.asStateFlow()
 
+    // 15-Query Evaluation Protocol for PhD Research
     private val testQueries = listOf(
-        "Android Developer", // Simple
-        "Building scalable mobile architectures", // Abstract
-        "Senior Kotlin developer with Clean Architecture knowledge", // Multi-attribute
-        "Data Scientist with Python and Machine Learning expertise", // Technical
-        "Experience in high-volume data processing and cloud infrastructure" // Conceptual
+        // Tier 1: Direct Semantic (Keyword-adjacent)
+        "Android Developer",
+        "Data Scientist",
+        "Database Administrator",
+        "HR Officer",
+        "Project Coordinator",
+        
+        // Tier 2: Abstract Intent (Conceptual)
+        "Building scalable mobile architectures",
+        "Expert in deep learning and NLP",
+        "Managing complex technical teams",
+        "Securing cloud infrastructure",
+        "Designing high-performance backend systems",
+        
+        // Tier 3: Multi-attribute (Recruiter Query)
+        "Senior Kotlin developer with Clean Architecture knowledge",
+        "Data Scientist with Python and Machine Learning expertise",
+        "Experience in high-volume data processing and cloud infrastructure",
+        "Recruitment specialist with technical interviewing skills",
+        "Infrastructure engineer with DevOps and CI/CD focus"
+    )
+
+    // Ground Truth mapping for Precision calculation
+    private val groundTruthKeywords = mapOf(
+        "Android Developer" to listOf("android", "ios", "mobile", "developer"),
+        "Data Scientist" to listOf("data scientist", "machine learning", "nlp", "analyst"),
+        "Database Administrator" to listOf("database", "dba", "sql", "administrator"),
+        "HR Officer" to listOf("hr", "human resource", "recruiter", "compliance"),
+        "Project Coordinator" to listOf("project", "coordinator", "manager", "planning"),
+        "Building scalable mobile architectures" to listOf("android", "ios", "mobile", "developer", "architecture"),
+        "Expert in deep learning and NLP" to listOf("machine learning", "nlp", "deep learning", "scientist"),
+        "Managing complex technical teams" to listOf("manager", "lead", "coordination", "collaboration"),
+        "Securing cloud infrastructure" to listOf("cloud", "security", "infrastructure", "devops"),
+        "Designing high-performance backend systems" to listOf("developer", "software", "backend", "system", "performance"),
+        "Senior Kotlin developer with Clean Architecture knowledge" to listOf("android", "kotlin", "developer", "architecture"),
+        "Data Scientist with Python and Machine Learning expertise" to listOf("data scientist", "python", "machine learning"),
+        "Experience in high-volume data processing and cloud infrastructure" to listOf("big data", "cloud", "infrastructure", "data analytics"),
+        "Recruitment specialist with technical interviewing skills" to listOf("hr", "recruiter", "interview", "management"),
+        "Infrastructure engineer with DevOps and CI/CD focus" to listOf("devops", "infrastructure", "ci/cd", "engineer")
     )
 
     init {
@@ -55,40 +97,62 @@ class BenchmarksViewModel @Inject constructor(
                 embeddingProvider.initialize()
                 llmProvider.initialize()
 
+                val allCandidates = resumeRepository.getAllEmbeddings().take(1500)
+
                 for (query in testQueries) {
                     Timber.d("Benchmarking query: $query")
                     
-                    // 1. Keyword Baseline (simulated)
+                    // 1. Keyword Baseline
                     val startTimeKeyword = System.currentTimeMillis()
-                    resumeRepository.searchResumesByKeyword(query)
+                    val keywordResults = resumeRepository.searchResumesByKeyword(query)
                     val durationKeyword = System.currentTimeMillis() - startTimeKeyword
-                    performanceMonitor.recordLatency("keyword_baseline", "Baseline: $query", durationKeyword)
+                    val precisionKeyword = calculatePrecision(query, keywordResults, k = 5)
+                    performanceMonitor.recordLatency(
+                        "keyword_baseline", 
+                        "Baseline: $query", 
+                        durationKeyword, 
+                        keywordResults.size,
+                        precision = precisionKeyword
+                    )
 
                     // 2. Static Vector Search
                     val startTimeVector = System.currentTimeMillis()
                     val embedding = embeddingProvider.embedText(query).getOrThrow()
-                    val candidates = resumeRepository.getAllEmbeddings().take(1500) // Limit to 1500 for experiment
-                    val results = vectorSearchEngine.search(embedding, candidates)
+                    val staticResults = vectorSearchEngine.search(embedding, allCandidates)
                     val durationVector = System.currentTimeMillis() - startTimeVector
-                    performanceMonitor.recordLatency("retrieval", "Static Search: $query", durationVector, results.size)
+                    
+                    // Need to fetch full entities for category check
+                    val staticResumes = staticResults.mapNotNull { resumeRepository.getResume(it.resumeId) }
+                    val precisionStatic = calculatePrecision(query, staticResumes, k = 5)
+                    
+                    performanceMonitor.recordLatency(
+                        "retrieval", 
+                        "Static Search: $query", 
+                        durationVector, 
+                        staticResults.size,
+                        precision = precisionStatic
+                    )
 
                     // 3. Agentic Search (with Reformulation)
                     val startTimeAgentic = System.currentTimeMillis()
-                    // Simulate reformulation trigger
-                    val reformulated = searchAgent.reformulateQuery(query, results)
+                    val reformulated = searchAgent.reformulateQuery(query, staticResults)
                     val refEmbedding = embeddingProvider.embedText(reformulated).getOrThrow()
-                    val finalResults = vectorSearchEngine.search(refEmbedding, candidates)
+                    val agenticResults = vectorSearchEngine.search(refEmbedding, allCandidates)
                     val durationAgentic = System.currentTimeMillis() - startTimeAgentic
+                    
+                    val agenticResumes = agenticResults.mapNotNull { resumeRepository.getResume(it.resumeId) }
+                    val precisionAgentic = calculatePrecision(query, agenticResumes, k = 5)
                     
                     performanceMonitor.recordLatency(
                         "agentic_search", 
                         "Reformulated: $query -> $reformulated", 
                         durationAgentic, 
-                        finalResults.size
+                        agenticResults.size,
+                        precision = precisionAgentic
                     )
                     
                     // Small delay to prevent resource contention
-                    kotlinx.coroutines.delay(500)
+                    delay(1000)
                 }
 
                 loadMetrics()
@@ -98,6 +162,36 @@ class BenchmarksViewModel @Inject constructor(
                 _isBenchmarking.value = false
             }
         }
+    }
+
+    private fun calculatePrecision(query: String, results: List<Resume>, k: Int): Double {
+        if (results.isEmpty()) return 0.0
+        
+        val topK = results.take(k)
+        val validKeywords = groundTruthKeywords[query] ?: return 0.0
+        
+        var relevantCount = 0
+        Timber.d("Evaluating precision for: $query (Top $k)")
+        
+        for (resume in topK) {
+            val category = resume.category.lowercase()
+            val fullName = resume.fullName.lowercase()
+            val skills = resume.skills.lowercase()
+            
+            // Flexible matching: check category, name, or skills
+            val isRelevant = validKeywords.any { 
+                category.contains(it) || fullName.contains(it) || (it.length > 3 && skills.contains(it))
+            }
+            
+            if (isRelevant) {
+                relevantCount++
+            }
+            Timber.v("  - Candidate [${resume.id}]: Category='$category', Relevant=$isRelevant")
+        }
+        
+        val precision = relevantCount.toDouble() / topK.size
+        Timber.d("  => Precision@$k: %.2f", precision)
+        return precision
     }
 
     fun loadMetrics() {
@@ -111,14 +205,16 @@ class BenchmarksViewModel @Inject constructor(
     private fun calculateSummary(allMetrics: List<PerformanceMetric>) {
         val ingestion = allMetrics.filter { it.operationType == "ingestion" }
         val retrieval = allMetrics.filter { it.operationType == "retrieval" }
-        val reasoning = allMetrics.filter { it.operationType == "agentic_reasoning" }
-        val reformulation = allMetrics.filter { it.operationType == "agentic_search" }
+        val agentic = allMetrics.filter { it.operationType == "agentic_search" }
+        val baseline = allMetrics.filter { it.operationType == "keyword_baseline" }
 
         _summary.value = BenchmarkSummary(
             avgIngestionMs = ingestion.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
             avgRetrievalMs = retrieval.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
-            avgReasoningMs = reasoning.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
-            avgReformulationMs = reformulation.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
+            avgAgenticMs = agentic.map { it.durationMs.toDouble() }.average().takeIf { !it.isNaN() } ?: 0.0,
+            meanPrecisionStatic = retrieval.map { it.precision }.average().takeIf { !it.isNaN() } ?: 0.0,
+            meanPrecisionAgentic = agentic.map { it.precision }.average().takeIf { !it.isNaN() } ?: 0.0,
+            meanPrecisionBaseline = baseline.map { it.precision }.average().takeIf { !it.isNaN() } ?: 0.0,
             totalCount = allMetrics.size,
             deviceInfo = allMetrics.firstOrNull()?.let { "${it.manufacturer} ${it.model}" } ?: "Unknown"
         )
@@ -132,19 +228,20 @@ class BenchmarksViewModel @Inject constructor(
     }
 
     fun getExportCsvContent(): String {
-        val header = "Timestamp,Type,Operation,Duration(ms),Resumes,Embeddings,Device,Context\n"
+        val header = "Timestamp,Type,Operation,Duration(ms),Precision,Resumes,Embeddings,Device,Context\n"
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         
         val rows = _metrics.value.joinToString("\n") { metric ->
             listOf(
                 dateFormat.format(Date(metric.timestamp)),
                 metric.operationType,
-                metric.operationName.replace(",", ";"), // Escape comma
+                metric.operationName.replace(",", ";"),
                 metric.durationMs.toString(),
+                "%.2f".format(metric.precision),
                 metric.resumeCount.toString(),
                 metric.embeddingCount.toString(),
                 "${metric.manufacturer} ${metric.model}",
-                metric.contextData.replace(",", ";") // Escape comma
+                metric.contextData.replace(",", ";")
             ).joinToString(",")
         }
         
@@ -155,8 +252,10 @@ class BenchmarksViewModel @Inject constructor(
 data class BenchmarkSummary(
     val avgIngestionMs: Double = 0.0,
     val avgRetrievalMs: Double = 0.0,
-    val avgReasoningMs: Double = 0.0,
-    val avgReformulationMs: Double = 0.0,
+    val avgAgenticMs: Double = 0.0,
+    val meanPrecisionStatic: Double = 0.0,
+    val meanPrecisionAgentic: Double = 0.0,
+    val meanPrecisionBaseline: Double = 0.0,
     val totalCount: Int = 0,
     val deviceInfo: String = ""
 )

@@ -49,6 +49,7 @@ object FlexibleCSVMapper {
             textHash = textHash,
             fileFormat = "csv",
             sourceFile = sourceFile,
+            category = values.getIgnoreCase("category") ?: "",
             processingStatus = "pending"
         )
     }
@@ -132,6 +133,7 @@ object FlexibleCSVMapper {
             textHash = textHash,
             fileFormat = "csv",
             sourceFile = sourceFile,
+            category = values.getIgnoreCase("job_position_name") ?: "",
             processingStatus = "pending"
         )
     }
@@ -327,7 +329,9 @@ object FlexibleCSVMapper {
      */
     private fun Map<String, String>.getIgnoreCase(key: String): String? {
         return this.entries.find { 
-            it.key.equals(key, ignoreCase = true) 
+            // Handle BOM (\uFEFF) and other non-printable characters in CSV headers
+            val cleanKey = it.key.replace("\uFEFF", "").filter { char -> char.code in 32..126 }
+            cleanKey.equals(key, ignoreCase = true) 
         }?.value?.trim()
     }
 

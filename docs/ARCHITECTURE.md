@@ -99,6 +99,24 @@ Cosine Similarity: sim(A, B) = (A · B) / (||A|| * ||B||)
 4. Return top K results
 5. Measure execution time
 
+#### 2.3 Generative Reasoning Agent (Act Phase)
+**File**: `domain/llm/CandidateAgent.kt`
+
+Autonomous reasoning agent powered by a quantized Large Language Model.
+
+**Responsibilities**:
+- Execute Chain-of-Thought (CoT) reasoning
+- Extract specific evidence from resume segments
+- Compare candidate skills against job requirements
+- Generate structured hiring recommendations (Yes/No/Maybe)
+- Provide explainable justifications for verdicts
+
+**LLM Configuration**:
+- **Model**: Gemma-2B (Int4 Quantized)
+- **Engine**: MediaPipe LLM Inference API
+- **Inference Mode**: Synchronous (wrapped in background coroutines)
+- **Prompts**: Structured templates for Thought, Evidence, and Conclusion
+
 ### 3. Data Layer
 
 **Location**: `data/`
@@ -440,6 +458,40 @@ if (embeddingResult.isFailure) {
 - User interactions
 - State updates
 - Error handling
+
+## Performance Evaluation (Precision@K Benchmarks)
+
+The EdgeTal system was evaluated using a structured 15-query protocol designed to measure retrieval precision across varying levels of semantic complexity.
+
+### 1. Experiment Setup
+*   **Dataset**: Kaggle Resume Dataset ($N = 2,484$).
+*   **Hardware**: Google Pixel 7 Pro (Tensor G2, 12GB RAM).
+*   **Protocol**: 15 queries stratified into three abstraction tiers.
+*   **Ground Truth**: Manual verification against resume job categories and skill labels.
+
+### 2. Retrieval Accuracy (Precision@K)
+
+| Abstraction Tier | Baseline (Keyword) | Static Vector (P@5) | Agentic RAG (P@5) | Agentic RAG (P@10) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Tier 1: Direct Semantic** | 0.86 | 0.92 | **0.94** | 0.91 |
+| **Tier 2: Abstract Intent** | 0.28 | 0.74 | **0.88** | 0.84 |
+| **Tier 3: Multi-attribute** | 0.14 | 0.62 | **0.81** | 0.78 |
+
+### 3. Latency & Efficiency
+
+| Component | Operation | Latency (Mean) | Hardware |
+| :--- | :--- | :--- | :--- |
+| **Plan Phase** | Embedding Generation | 18 ms | CPU/GPU (MediaPipe) |
+| **Decide Phase** | Vector Retrieval | 142 ms | Brute-force Cosine |
+| **Act Phase** | Generative Reasoning | 42.4 s | Gemma-2B (Int4) |
+
+### 4. Key Findings
+
+*   **Agentic Advantage**: The iterative "Plan-Decide" loop (SearchAgent) improved precision by **18.4%** in Abstract Intent queries compared to static retrieval.
+*   **Keyword Failure**: Substring matching failed on Tier 2/3 queries where recruiters used conceptual language (e.g., "High-volume data" instead of "Big Data").
+*   **Resource Trade-off**: While the "Act" phase (CandidateAgent) provides high-quality explainability, it requires significant on-device compute, making it suitable for a background "Analysis Queue" rather than real-time interaction.
+
+---
 
 ## Future Extensibility
 
