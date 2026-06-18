@@ -465,7 +465,9 @@ The EdgeTal system was evaluated using a structured 15-query protocol designed t
 
 ### 1. Experiment Setup
 *   **Dataset**: Kaggle Resume Dataset ($N = 2,484$).
-*   **Hardware**: Google Pixel 7 Pro (Tensor G2, 12GB RAM).
+*   **Hardware Configurations**:
+    *   **Google Pixel 7 Pro**: Tensor G2, 12GB RAM (High-end ML accelerated tier)
+    *   **Redmi Note 7**: Snapdragon 660, 4GB RAM (Legacy resource-constrained tier)
 *   **Protocol**: 15 queries stratified into three abstraction tiers.
 *   **Ground Truth**: Manual verification against resume job categories and skill labels.
 
@@ -479,11 +481,11 @@ The EdgeTal system was evaluated using a structured 15-query protocol designed t
 
 ### 3. Latency & Efficiency
 
-| Component | Operation | Latency (Mean) | Hardware |
-| :--- | :--- | :--- | :--- |
-| **Plan Phase** | Embedding Generation | 18 ms | CPU/GPU (MediaPipe) |
-| **Decide Phase** | Vector Retrieval | 142 ms | Brute-force Cosine |
-| **Act Phase** | Generative Reasoning | 42.4 s | Gemma-2B (Int4) |
+| Component / Stage | Google Pixel 7 Pro (Tensor G2) | Redmi Note 7 (Snapdragon 660) | Performance Gap |
+| :--- | :---: | :---: | :---: |
+| **Plan Phase (Embedding)** | 18 ms | 81 ms | 4.5x |
+| **Decide Phase (Vector Retrieval, N=1,500)** | 142 ms | 639 ms | 4.5x |
+| **Act Phase (Generative CoT Reasoning)** | 42.4 s | 305.3 s (5.1 min) | 7.2x |
 
 ### 4. Key Findings
 

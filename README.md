@@ -18,28 +18,28 @@ Unlike passive keyword search tools, EdgeTal operates as an agentic system with 
 
 ## 📊 Real-World Performance Benchmarks
 
-Validated on **Samsung Galaxy M21 (Exynos 9611)** vs. **High-Performance Simulator**.
+Validated on **Google Pixel 7 Pro (Tensor G2)** and **Redmi Note 7 (Snapdragon 660)** at $N = 1,500$ embeddings.
 
 ### 1\. Retrieval Latency (The "Fast" Loop)
 
-*Dataset: Kaggle Resume Dataset (N=126 to N=2400)*
+*Dataset: Kaggle Resume Dataset (N=1,500)*
 
-| Query Complexity | Samsung M21 Latency | Status |
-| :--- | :--- | :--- |
-| **"Security"** | **146 ms** | 🟢 Real-Time |
-| **"Developer"** | **147 ms** | 🟢 Real-Time |
-| **"Chef"** (Cold Start) | **204 ms** | 🟡 Acceptable |
+| Query / Search Type | Google Pixel 7 Pro | Redmi Note 7 | Status / Target |
+| :--- | :---: | :---: | :--- |
+| **Raw Vector Search** | **11.9 ms** | **53.6 ms** | 🟢 Real-Time (< 200 ms) |
+| **Static Semantic Search** | **59.3 ms** | **266.9 ms** | 🟢 Near Real-Time |
+| **Keyword Baseline** | **535.8 ms** | **2,411.1 ms** | 🟡 CPU Batch Search |
 
-> **Result:** The system achieves the research target of **\<200ms** retrieval latency on mid-range hardware.
+> **Result:** The system achieves the research target of **\<200ms** semantic search latency on mainstream hardware.
 
-### 2\. Generative Analysis (The "Deep" Loop)
+### 2\. Generative Analysis & Reformulation (The "Deep" Loop)
 
-*Model: Gemma-2B (Int4) via MediaPipe*
+*Model: Gemma-2B (Int4) via MediaPipe LLM API*
 
-| Task | Device | Time to Complete |
-| :--- | :--- | :--- |
-| **Full Profile Summarization** | AVD / Emulator | \~155 seconds |
-| **Full Profile Summarization** | High-End Android | \~45-60 seconds (Est.) |
+| Task / Phase | Google Pixel 7 Pro | Redmi Note 7 | Gap / Bottleneck |
+| :--- | :---: | :---: | :---: |
+| **Query Reformulation** | **6.7 s** | **48.2 s** | $7.2\times$ performance gap |
+| **Generative Inference (Act)** | **42.4 s** | **305.3 s (5.1 min)** | $7.2\times$ performance gap (Bottleneck) |
 
 > **Architecture Note:** Due to the heavy computational cost, Generation is handled as an asynchronous background task ("Report Queue"), ensuring the UI remains responsive.
 
@@ -94,14 +94,25 @@ git clone https://github.com/madusankapremaratne/edgetal-kotlin.git
 cd edgetal-kotlin
 ```
 
-### 2\. Download the Models
+### 2\. Build & Run
 
-1.  **Embedder:** Download `text_embedder.tflite` from [MediaPipe Tasks](https://www.google.com/search?q=https://developers.google.com/mediapipe/solutions/text/text_embedder).
-2.  **LLM:** Download `gemma-2b-it-cpu-int4.bin` from [Kaggle Models](https://www.kaggle.com/models/google/gemma).
+```bash
+./gradlew installDebug
+```
 
-### 3\. Deploying the LLM (Important)
+The text embedder (`text_embedder.tflite`) is bundled in `app/src/main/assets/`, so semantic search works out of the box.
 
-Since `gemma-2b` is large (\~1.3GB), it is not included in the repo. We recommend pushing it directly to the device storage to avoid slow build times.
+### 3\. Download the LLM (In-App — Recommended)
+
+Open the **Models** tab in the app and tap **Download Model (~1.3 GB)**. The app downloads `gemma-2b-it-cpu-int4.bin` directly from Hugging Face into its private storage — no adb or cables needed.
+
+  * **Resumable:** Interrupted downloads continue where they left off.
+  * **Custom source:** Under *Advanced*, paste any direct download URL (e.g. a Hugging Face `resolve` link). For gated repos such as the official [google/gemma](https://huggingface.co/google/gemma-2b-it), accept the license on Hugging Face and paste a read access token.
+  * **Storage:** The Models tab also shows the installed size and lets you delete the model to free space.
+
+### 4\. Deploying the LLM via adb (Alternative)
+
+If you already have the model file on your computer (e.g. from [Kaggle Models](https://www.kaggle.com/models/google/gemma)), you can push it manually instead:
 
 **Step 1: Push the model to temporary storage**
 Push the model to `/data/local/tmp/` first (the most reliable location for large files):
@@ -134,26 +145,7 @@ adb shell rm /data/local/tmp/gemma-2b-it-cpu-int4.bin
 > [!TIP]
 > If you have multiple devices connected, add `-s <device-id>` (e.g., `adb -s 2B131FDH3000XK push ...`) to specify the target.
 
-**Step 2: Update Code to Read from Storage**
-In `LlmInferenceProvider.kt`, the app is configured to load the model from the internal `filesDir`:
-
-```kotlin
-// LlmInferenceProvider.kt
-val sourceFile = File(context.filesDir, "gemma-2b-it-cpu-int4.bin")
-
-val options = LlmInference.LlmInferenceOptions.builder()
-    .setModelPath(sourceFile.absolutePath)
-    .setMaxTokens(256)
-    .build()
-
-llmInference = LlmInference.createFromOptions(context, options)
-```
-
-### 4\. Build & Run
-
-```bash
-./gradlew installDebug
-```
+Either way, the app loads the model from its internal `filesDir` (see `LlmInferenceProvider.kt` / `ModelDownloadManager.kt`).
 
 -----
 

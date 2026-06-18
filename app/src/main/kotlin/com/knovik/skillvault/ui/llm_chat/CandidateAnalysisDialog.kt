@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun CandidateAnalysisDialog(
     resumeId: Long,
     onDismiss: () -> Unit,
+    onNavigateToModels: () -> Unit = {},
     viewModel: LlmChatViewModel = hiltViewModel()
 ) {
     var roleDescription by remember { mutableStateOf("") }
@@ -37,7 +38,9 @@ fun CandidateAnalysisDialog(
                 when (val state = uiState) {
                     is ChatUiState.ModelMissing -> {
                         Text(
-                            "Gemma 2 Model not found on device.\nPlease download 'gemma-2b-it-cpu-int4.bin' and place it in app storage.",
+                            "The Gemma 2B model isn't installed yet. Download it once " +
+                                "(~1.3 GB, Wi-Fi recommended) from the Models tab to " +
+                                "enable AI analysis.",
                             color = MaterialTheme.colorScheme.error
                         )
                     }
@@ -90,7 +93,11 @@ fun CandidateAnalysisDialog(
             }
         },
         confirmButton = {
-            if (uiState is ChatUiState.Idle) {
+            if (uiState is ChatUiState.ModelMissing) {
+                Button(onClick = onNavigateToModels) {
+                    Text("Download Model")
+                }
+            } else if (uiState is ChatUiState.Idle) {
                 Button(
                     onClick = { viewModel.analyzeCandidateFit(resumeId, roleDescription) },
                     enabled = roleDescription.isNotBlank()

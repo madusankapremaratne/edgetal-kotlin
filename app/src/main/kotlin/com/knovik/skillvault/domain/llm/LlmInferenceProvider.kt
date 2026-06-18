@@ -23,7 +23,7 @@ class LlmInferenceProvider @Inject constructor(
 ) {
     private var llmInference: LlmInference? = null
     private var llmSession: LlmInferenceSession? = null
-    private val modelFileName = "gemma-2b-it-cpu-int4.bin"
+    private val modelFileName = ModelDownloadManager.LLM_MODEL_FILE_NAME
     private val initializationMutex = Mutex()
 
     /**
@@ -37,7 +37,7 @@ class LlmInferenceProvider @Inject constructor(
                 val sourceFile = File(context.filesDir, modelFileName)
                 if (!sourceFile.exists()) {
                     return@withLock Result.failure(
-                        IllegalStateException("Model file not found. Please push '$modelFileName' to ${context.filesDir.absolutePath}")
+                        IllegalStateException("Model not installed. Download it from the Models tab.")
                     )
                 }
 

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import com.knovik.skillvault.ui.resume_list.ResumeListScreen
 import com.knovik.skillvault.ui.search.SearchScreen
 import com.knovik.skillvault.ui.import_data.ImportDataScreen
 import com.knovik.skillvault.ui.benchmarks.BenchmarksScreen
+import com.knovik.skillvault.ui.model_manager.ModelManagerScreen
 import com.knovik.skillvault.ui.theme.EdgeTalTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -50,6 +52,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     data object ResumeList : Screen("resume_list", "Resumes", Icons.Filled.Home)
     data object Search : Screen("search", "Search", Icons.Filled.Search)
     data object Benchmarks : Screen("benchmarks", "Benchmarks", Icons.Filled.Build)
+    data object Models : Screen("models", "Models", Icons.Filled.Settings)
     data object ImportData : Screen("import_data", "Import", Icons.Filled.Add)
     data object ResumeDetails : Screen("resume_details/{resumeId}?query={query}&segmentId={segmentId}", "Details", Icons.Filled.Info)
 }
@@ -61,7 +64,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val items = listOf(Screen.ResumeList, Screen.Search, Screen.Benchmarks)
+    val items = listOf(Screen.ResumeList, Screen.Search, Screen.Benchmarks, Screen.Models)
     
     Scaffold(
         bottomBar = {
@@ -115,6 +118,9 @@ fun MainScreen() {
             composable(Screen.Benchmarks.route) {
                 BenchmarksScreen()
             }
+            composable(Screen.Models.route) {
+                ModelManagerScreen()
+            }
             composable(Screen.ImportData.route) {
                 ImportDataScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -138,7 +144,15 @@ fun MainScreen() {
                 )
             ) {
                 com.knovik.skillvault.ui.resume_details.ResumeDetailsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToModels = {
+                        navController.navigate(Screen.Models.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }

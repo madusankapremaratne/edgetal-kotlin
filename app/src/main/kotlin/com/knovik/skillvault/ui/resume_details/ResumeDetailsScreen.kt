@@ -32,7 +32,8 @@ import com.knovik.skillvault.data.entity.Resume
 @Composable
 fun ResumeDetailsScreen(
     viewModel: ResumeDetailsViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToModels: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAnalysisDialog by remember { mutableStateOf(false) }
@@ -42,7 +43,11 @@ fun ResumeDetailsScreen(
         if (currentResume != null) {
             com.knovik.skillvault.ui.llm_chat.CandidateAnalysisDialog(
                 resumeId = currentResume.id,
-                onDismiss = { showAnalysisDialog = false }
+                onDismiss = { showAnalysisDialog = false },
+                onNavigateToModels = {
+                    showAnalysisDialog = false
+                    onNavigateToModels()
+                }
             )
         }
     }
