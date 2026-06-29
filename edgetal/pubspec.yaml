@@ -1,0 +1,44 @@
+name: edgetal
+description: "EdgeTal — private, on-device talent intelligence. GDPR by design."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management (maps cleanly to the original MVVM / StateFlow design)
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Typography
+  google_fonts: ^6.2.1
+
+  # Data import / download
+  csv: ^6.0.0
+  http: ^1.2.2
+  file_picker: ^8.1.4
+
+  # Local persistence
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.3
+
+  # Formatting
+  intl: ^0.20.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/data/
