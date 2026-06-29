@@ -64,3 +64,12 @@ final ingestionServiceProvider = Provider<EmbeddingIngestionService>(
 /// Bumped whenever the resume/embedding collections change so screens that read
 /// counts or lists can refresh.
 final libraryRevisionProvider = StateProvider<int>((_) => 0);
+
+/// Runs once at app start: if the stored embeddings were built by a different
+/// embedder than the active one (e.g. offline fallback → on-device MediaPipe),
+/// regenerates them so search stays consistent. Cached, so it never re-runs.
+final startupReconcileProvider = FutureProvider<bool>((ref) async {
+  final changed = await ref.read(ingestionServiceProvider).reindexIfStale();
+  if (changed) ref.read(libraryRevisionProvider.notifier).state++;
+  return changed;
+});

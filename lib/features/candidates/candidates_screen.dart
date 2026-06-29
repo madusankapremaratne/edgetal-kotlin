@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -17,6 +18,8 @@ class CandidatesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(candidatesControllerProvider);
     final controller = ref.read(candidatesControllerProvider.notifier);
+    // Kicks off the one-time embedder reconciliation (offline → on-device).
+    ref.watch(startupReconcileProvider);
 
     return PageScaffold(
       title: 'Candidates',

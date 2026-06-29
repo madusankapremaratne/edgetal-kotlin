@@ -78,6 +78,10 @@ class ModelDownloadManager {
     return await f.exists() ? await f.length() : 0;
   }
 
+  /// Absolute path of the installed model, passed to the native LLM channel so
+  /// Dart and the platform side never disagree about its location.
+  Future<String> modelFilePath() async => (await _modelFile).path;
+
   Future<void> deleteModel() async {
     await cancelDownload(silent: true);
     final model = await _modelFile;

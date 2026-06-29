@@ -37,7 +37,7 @@ class NativeLlmProvider implements LlmProvider {
     }
     try {
       final ok = await _channel.invokeMethod<bool>('initialize', {
-        'modelFileName': ModelDownloadManager.modelFileName,
+        'modelPath': await _downloads.modelFilePath(),
       });
       _nativeReady = ok ?? false;
     } on MissingPluginException {

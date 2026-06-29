@@ -1,52 +1,91 @@
 package com.knovik.edgetal
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
+import kotlin.math.sqrt
 
 /**
- * Native side of the `edgetal/embedder` channel — the on-device text embedder.
+ * Native side of the `edgetal/embedder` channel — on-device text embeddings via
+ * MediaPipe's Text Embedder. Ported from the original EdgeTal
+ * `MediaPipeEmbeddingProvider`.
  *
- * This mirrors the original EdgeTal `MediaPipeEmbeddingProvider`. To activate
- * the true on-device pipeline:
- *   1. Add the MediaPipe Tasks Text dependency in `android/app/build.gradle`:
- *        implementation("com.google.mediapipe:tasks-text:0.10.21")
- *   2. Ship `text_embedder.tflite` in `android/app/src/main/assets/`.
- *   3. Implement the two TODOs below using `com.google.mediapipe.tasks.text
- *      .textembedder.TextEmbedder`.
- *
- * Until then, returning errors here is harmless: the Dart `NativeEmbeddingProvider`
- * falls back to its offline hashing embedder.
+ * The model (`text_embedder.tflite`) ships in `android/app/src/main/assets/`.
+ * Work runs on a background executor; results are posted back on the main thread
+ * (MethodChannel.Result must be invoked there).
  */
 class EmbedderChannel(private val context: Context) {
 
-    // private var embedder: TextEmbedder? = null
+    private var embedder: TextEmbedder? = null
+    private var dimension: Int = 0
+    private val executor = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
 
     fun register(messenger: BinaryMessenger) {
         MethodChannel(messenger, "edgetal/embedder").setMethodCallHandler { call, result ->
             when (call.method) {
-                "initialize" -> {
-                    // TODO: build TextEmbedder from assets/text_embedder.tflite and
-                    // return the embedding dimension (512). Example:
-                    //
-                    // val options = TextEmbedder.TextEmbedderOptions.builder()
-                    //     .setBaseOptions(
-                    //         BaseOptions.builder()
-                    //             .setModelAssetPath("text_embedder.tflite").build())
-                    //     .build()
-                    // embedder = TextEmbedder.createFromOptions(context, options)
-                    // result.success(512)
-                    result.error("UNIMPLEMENTED", "MediaPipe embedder not wired yet", null)
+                "initialize" -> executor.execute {
+                    try {
+                        val dim = ensureEmbedder()
+                        main.post { result.success(dim) }
+                    } catch (e: Exception) {
+                        main.post { result.error("INIT_FAILED", e.message, null) }
+                    }
                 }
                 "embed" -> {
-                    // val text = call.argument<String>("text") ?: ""
-                    // val embedding = embedder!!.embed(text).embeddingResult()
-                    //     .embeddings().first().floatEmbedding()
-                    // result.success(embedding.toList())
-                    result.error("UNIMPLEMENTED", "MediaPipe embedder not wired yet", null)
+                    val text = call.argument<String>("text") ?: ""
+                    executor.execute {
+                        try {
+                            ensureEmbedder()
+                            val raw = embedder!!.embed(text)
+                                .embeddingResult()
+                                .embeddings()
+                                .first()
+                                .floatEmbedding()
+                            val normalized = normalize(raw).map { it.toDouble() }
+                            main.post { result.success(normalized) }
+                        } catch (e: Exception) {
+                            main.post { result.error("EMBED_FAILED", e.message, null) }
+                        }
+                    }
                 }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    /** Lazily builds the embedder and returns its output dimension. */
+    private fun ensureEmbedder(): Int {
+        if (embedder == null) {
+            val options = TextEmbedder.TextEmbedderOptions.builder()
+                .setBaseOptions(
+                    BaseOptions.builder()
+                        .setModelAssetPath("text_embedder.tflite")
+                        .build()
+                )
+                .build()
+            embedder = TextEmbedder.createFromOptions(context, options)
+            // Probe the real output dimension once so Dart and the store agree.
+            dimension = embedder!!.embed("dimension probe")
+                .embeddingResult()
+                .embeddings()
+                .first()
+                .floatEmbedding()
+                .size
+        }
+        return dimension
+    }
+
+    private fun normalize(v: FloatArray): FloatArray {
+        var mag = 0.0
+        for (x in v) mag += (x * x).toDouble()
+        mag = sqrt(mag)
+        if (mag == 0.0) return v
+        return FloatArray(v.size) { (v[it] / mag).toFloat() }
     }
 }

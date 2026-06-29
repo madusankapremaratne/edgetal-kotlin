@@ -30,6 +30,26 @@ class EmbeddingIngestionService {
     return pending.length;
   }
 
+  /// Regenerates all embeddings if the stored ones were produced by a different
+  /// embedder than the one now active — e.g. the offline fallback used at first
+  /// run vs. the on-device MediaPipe model once it's wired in. Without this,
+  /// query vectors (native) and document vectors (offline) would live in
+  /// different spaces and search would return noise. Returns true if it ran.
+  Future<bool> reindexIfStale() async {
+    await _embedder.initialize();
+    final sample = await _repository.getAllEmbeddings(limit: 1);
+    if (sample.isEmpty) return false;
+    final fresh = sample.first.embeddingModel == _embedder.backendLabel &&
+        sample.first.embeddingDimension == _embedder.dimension;
+    if (fresh) return false;
+
+    final resumes = await _repository.getAllResumes();
+    for (final r in resumes) {
+      await embedResume(r.id);
+    }
+    return true;
+  }
+
   Future<void> embedResume(int resumeId) async {
     final resume = await _repository.getResume(resumeId);
     if (resume == null) return;

@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.knovik.edgetal"
-    compileSdk = flutter.compileSdkVersion
+    // Some plugins (file_picker → flutter_plugin_android_lifecycle) require 36.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -15,14 +16,18 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.knovik.edgetal"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // MediaPipe LLM Inference (Gemma) requires API 26+.
+        minSdk = maxOf(26, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // The on-device ML model assets must not be zip-compressed in the APK,
+    // otherwise MediaPipe can't memory-map them.
+    androidResources {
+        noCompress += listOf("tflite", "bin")
     }
 
     buildTypes {
@@ -32,6 +37,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // On-device ML — mirrors the original EdgeTal Kotlin app (MediaPipe 0.10.18).
+    implementation("com.google.mediapipe:tasks-text:0.10.18")
+    implementation("com.google.mediapipe:tasks-genai:0.10.18")
 }
 
 kotlin {
