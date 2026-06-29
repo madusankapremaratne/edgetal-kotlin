@@ -64,9 +64,9 @@ features/           One folder per screen: a Riverpod controller + its UI
 
 ## On-device ML
 
-The original used **MediaPipe Text Embedder** (512-dim) and **MediaPipe LLM
-Inference** (Gemma-2B Int4). There is no drop-in Flutter package for these, so
-EdgeTal bridges to them over **platform channels**, with graceful fallbacks:
+The original used **MediaPipe Text Embedder** and **MediaPipe LLM Inference**
+(Gemma-2B Int4). There is no drop-in Flutter package for these, so EdgeTal
+bridges to them over **platform channels**, with graceful fallbacks:
 
 | Capability | Native (production) | Fallback (runs everywhere) |
 | --- | --- | --- |
@@ -76,22 +76,29 @@ EdgeTal bridges to them over **platform channels**, with graceful fallbacks:
 Every AI result is **badged** in the UI as *on-device model* vs *offline
 heuristic*, so nothing is ever misrepresented.
 
-### Wiring the native pipeline (Android)
+### Android — implemented ✅
 
-The channel scaffolding is already registered in
-`android/app/src/main/kotlin/com/knovik/edgetal/`:
+The native pipeline is live and validated on a physical device:
+`EmbedderChannel.kt` / `LlmChannel.kt` call MediaPipe (`tasks-text` /
+`tasks-genai` 0.10.18), `text_embedder.tflite` ships in
+`android/app/src/main/assets/`, and the app auto-detects the model's true
+embedding dimension. When the active embedder changes (offline fallback →
+on-device), stored embeddings are **automatically re-indexed** so query and
+document vectors share the same space. Download the Gemma model in-app from the
+**Models** screen (resumable, ~1.3 GB) to enable on-device generation.
 
-1. Add MediaPipe deps to `android/app/build.gradle`:
-   ```
-   implementation("com.google.mediapipe:tasks-text:0.10.21")
-   implementation("com.google.mediapipe:tasks-genai:0.10.21")
-   ```
-2. Ship `text_embedder.tflite` in `android/app/src/main/assets/`.
-3. Fill in the `TODO`s in `EmbedderChannel.kt` and `LlmChannel.kt`.
-4. Download the Gemma model in-app from the **Models** screen (resumable,
-   ~1.3 GB), exactly like the original.
+### iOS / macOS — stubbed
 
-iOS/macOS channels follow the same contract (not yet stubbed).
+`AppDelegate.swift` (iOS) and `MainFlutterWindow.swift` (macOS) register the same
+channels; they currently return `notImplemented`, so the app falls back to the
+offline providers. Implement with the MediaPipe iOS/macOS frameworks to match
+Android.
+
+### Persistence — JSON store (ObjectBox swap pending)
+
+Persistence is a JSON-file `LocalDatabase` behind `ResumeRepository`. Swapping in
+**ObjectBox** with its native HNSW vector index (like the original) is the one
+remaining seam and touches only those two files plus the search engine.
 
 ---
 
