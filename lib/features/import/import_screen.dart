@@ -4,11 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/feature_guide_overlay.dart';
+import '../../domain/guide/in_app_guide_service.dart';
 import '../shared/page_scaffold.dart';
 import 'import_controller.dart';
+
+/// Whether folder import (local or cloud) is available on this platform.
+bool get _folderImportAvailable => ImportController.isFolderImportSupported;
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
@@ -20,6 +26,45 @@ class ImportScreen extends ConsumerStatefulWidget {
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   final _urlController = TextEditingController();
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGuide());
+  }
+
+  Future<void> _checkGuide() async {
+    final guide = ref.read(inAppGuideServiceProvider);
+    await guide.initialize();
+    if (!mounted) return;
+    if (!guide.isGuideCompleted(InAppGuideService.keyImportTour)) {
+      FeatureGuideOverlay.show(
+        context,
+        steps: const [
+          GuideStep(
+            title: '1. From Folder Import',
+            description:
+                'Pick a local folder containing PDF/DOCX resumes for batch parsing and automatic vector embedding.',
+            icon: Icons.folder_open,
+          ),
+          GuideStep(
+            title: '2. Cloud Folder Import',
+            description:
+                'Connect to Google Drive, OneDrive, or iCloud Drive to import stored resumes directly.',
+            icon: Icons.cloud_outlined,
+          ),
+          GuideStep(
+            title: '3. CSV File or URL Link',
+            description:
+                'Import candidate datasets from a local .csv file or directly from a web URL link.',
+            icon: Icons.table_chart_outlined,
+          ),
+        ],
+        onCompleted: () =>
+            guide.markGuideCompleted(InAppGuideService.keyImportTour),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -35,6 +80,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final path = result?.files.single.path;
     if (path != null) {
       await ref.read(importControllerProvider.notifier).importFromFile(path);
+    }
+  }
+
+  Future<void> _pickFolder() async {
+    final path = await FilePicker.platform.getDirectoryPath();
+    if (path != null) {
+      await ref.read(importControllerProvider.notifier).importFromFolder(path);
     }
   }
 
@@ -56,10 +108,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     });
 
     final busy = state is ImportLoading;
+    final options = [
+      if (_folderImportAvailable) 'From Folder',
+      if (_folderImportAvailable) 'Cloud Folder',
+      'CSV (File or Link)',
+    ];
+    final tab = _tab < options.length ? _tab : 0;
 
     return PageScaffold(
       title: 'Import resumes',
-      subtitle: 'CSV stays on this device — nothing is uploaded',
+      subtitle: 'Parsed on-device — your candidates stay private',
       leading: IconButton(
         onPressed: () => context.pop(),
         icon: const Icon(Icons.arrow_back),
@@ -69,18 +127,25 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Segmented(
-            index: _tab,
+            index: tab,
             onChanged: busy ? null : (i) => setState(() => _tab = i),
-            options: const ['From URL', 'Local file'],
+            options: options,
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (_tab == 0)
-            _UrlCard(controller: _urlController, busy: busy, onImport: () {
-              FocusScope.of(context).unfocus();
-              notifier.importFromUrl(_urlController.text);
-            })
+          if (options[tab] == 'From Folder')
+            _FolderCard(busy: busy, onPick: _pickFolder)
+          else if (options[tab] == 'Cloud Folder')
+            _CloudFolderCard(busy: busy, onPick: _pickFolder)
           else
-            _FileCard(busy: busy, onPick: _pickFile),
+            _CsvCard(
+              controller: _urlController,
+              busy: busy,
+              onPickFile: _pickFile,
+              onImportUrl: () {
+                FocusScope.of(context).unfocus();
+                notifier.importFromUrl(_urlController.text);
+              },
+            ),
           AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
@@ -151,10 +216,12 @@ class _Segmented extends StatelessWidget {
                   ),
                   child: Text(
                     options[i],
-                    style: context.text.labelLarge?.copyWith(
+                    textAlign: TextAlign.center,
+                    style: context.text.labelMedium?.copyWith(
                       color: i == index
                           ? context.colors.textPrimary
                           : context.colors.textSecondary,
+                      fontWeight: i == index ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -166,50 +233,8 @@ class _Segmented extends StatelessWidget {
   }
 }
 
-class _UrlCard extends StatelessWidget {
-  const _UrlCard({
-    required this.controller,
-    required this.busy,
-    required this.onImport,
-  });
-
-  final TextEditingController controller;
-  final bool busy;
-  final VoidCallback onImport;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionHeader(
-            title: 'Import from a URL',
-            subtitle: 'Point to a publicly reachable .csv file',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: controller,
-            enabled: !busy,
-            decoration: const InputDecoration(
-              hintText: 'https://example.com/resumes.csv',
-              prefixIcon: Icon(Icons.link, size: 20),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          FilledButton.icon(
-            onPressed: busy ? null : onImport,
-            icon: const Icon(Icons.download_outlined, size: 20),
-            label: const Text('Import from URL'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FileCard extends StatelessWidget {
-  const _FileCard({required this.busy, required this.onPick});
+class _FolderCard extends StatelessWidget {
+  const _FolderCard({required this.busy, required this.onPick});
   final bool busy;
   final VoidCallback onPick;
 
@@ -220,14 +245,159 @@ class _FileCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionHeader(
-            title: 'Import a local file',
-            subtitle: 'Choose a CSV from this device',
+            title: '1. Import from local folder',
+            subtitle: 'Select a directory on this device containing PDF or DOCX resumes. '
+                'The on-device AI reads each resume, extracts candidate data, and indexes profiles locally.',
           ),
           const SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
+          AppGradientButton(
             onPressed: busy ? null : onPick,
-            icon: const Icon(Icons.folder_open_outlined, size: 20),
-            label: const Text('Choose CSV file'),
+            icon: Icons.folder_open_outlined,
+            label: 'Choose local folder',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CloudFolderCard extends StatelessWidget {
+  const _CloudFolderCard({required this.busy, required this.onPick});
+  final bool busy;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: '2. Import from Cloud Folder',
+            subtitle: 'Pick a folder from Google Drive, OneDrive, or iCloud Drive via your system file picker.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: const [
+              _CloudBadge(label: 'Google Drive', icon: Icons.add_to_drive),
+              _CloudBadge(label: 'OneDrive', icon: Icons.cloud_outlined),
+              _CloudBadge(label: 'iCloud Drive', icon: Icons.cloud_done_outlined),
+              _CloudBadge(label: 'Dropbox', icon: Icons.folder_special_outlined),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppGradientButton(
+            onPressed: busy ? null : onPick,
+            icon: Icons.cloud_upload_outlined,
+            label: 'Open Cloud Drive / Folder',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Tip: In the system file picker, select your connected Google Drive or OneDrive from the side navigation menu.',
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CloudBadge extends StatelessWidget {
+  const _CloudBadge({required this.label, required this.icon});
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceSubtle,
+        borderRadius: AppRadius.chip,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: context.colors.brand),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CsvCard extends StatelessWidget {
+  const _CsvCard({
+    required this.controller,
+    required this.busy,
+    required this.onPickFile,
+    required this.onImportUrl,
+  });
+
+  final TextEditingController controller;
+  final bool busy;
+  final VoidCallback onPickFile;
+  final VoidCallback onImportUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: '3. Import CSV (File or Link)',
+            subtitle: 'Import candidate datasets from a local CSV file or public URL link.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Local CSV File', style: context.text.titleSmall),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Choose a .csv or .txt file containing candidate data from this device.',
+            style: context.text.bodySmall?.copyWith(color: context.colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: busy ? null : onPickFile,
+            icon: const Icon(Icons.insert_drive_file_outlined, size: 20),
+            label: const Text('Choose local CSV file'),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Divider(color: context.colors.border),
+          const SizedBox(height: AppSpacing.md),
+          Text('CSV Web Link (URL)', style: context.text.titleSmall),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Enter a publicly reachable web link pointing to a CSV file.',
+            style: context.text.bodySmall?.copyWith(color: context.colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: controller,
+            enabled: !busy,
+            decoration: const InputDecoration(
+              hintText: 'https://example.com/resumes.csv',
+              prefixIcon: Icon(Icons.link, size: 20),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppGradientButton(
+            onPressed: busy ? null : onImportUrl,
+            icon: Icons.download_outlined,
+            label: 'Import from URL',
           ),
         ],
       ),
@@ -366,12 +536,12 @@ class _FormatsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Supported formats', style: context.text.titleSmall),
+          Text('Supported import options', style: context.text.titleSmall),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '• Kaggle Resume Dataset (9 columns)\n'
-            '• Extended Resume Dataset (35 columns)\n'
-            '• Custom CSV with a header row (auto-detected)',
+            '1. Local Folder — PDF/DOCX resumes parsed on-device\n'
+            '2. Cloud Folder — Google Drive, OneDrive, or iCloud Drive\n'
+            '3. CSV Dataset — Local .csv file or remote web URL link',
             style: context.text.bodySmall,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -381,7 +551,7 @@ class _FormatsCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Files are parsed locally. Nothing is sent to a server.',
+                  'Files are parsed locally. Candidate data never leaves this device.',
                   style: context.text.bodySmall
                       ?.copyWith(color: context.colors.privacy),
                 ),

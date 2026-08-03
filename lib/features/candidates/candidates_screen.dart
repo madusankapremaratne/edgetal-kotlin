@@ -8,16 +8,61 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/feature_guide_overlay.dart';
 import '../../data/models/resume.dart';
+import '../../domain/guide/in_app_guide_service.dart';
 import '../shared/page_scaffold.dart';
-import '../shared/stat_strip.dart';
 import 'candidates_controller.dart';
 
-class CandidatesScreen extends ConsumerWidget {
+class CandidatesScreen extends ConsumerStatefulWidget {
   const CandidatesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CandidatesScreen> createState() => _CandidatesScreenState();
+}
+
+class _CandidatesScreenState extends ConsumerState<CandidatesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGuide());
+  }
+
+  Future<void> _checkGuide() async {
+    final guide = ref.read(inAppGuideServiceProvider);
+    await guide.initialize();
+    if (!mounted) return;
+    if (!guide.isGuideCompleted(InAppGuideService.keyCandidatesTour)) {
+      FeatureGuideOverlay.show(
+        context,
+        steps: const [
+          GuideStep(
+            title: 'Natural Language Search',
+            description:
+                'Type queries like "Senior React Native developer" to search candidate profiles using on-device semantic vector matching.',
+            icon: Icons.search,
+          ),
+          GuideStep(
+            title: 'Candidate Match Scores',
+            description:
+                'Candidates are ranked instantly with visual match percentages reflecting deep skill and experience alignment.',
+            icon: Icons.stars,
+          ),
+          GuideStep(
+            title: 'Explainable AI Analysis',
+            description:
+                'Tap any candidate to generate structured fit breakdowns powered by on-device Gemma LLM.',
+            icon: Icons.psychology,
+          ),
+        ],
+        onCompleted: () =>
+            guide.markGuideCompleted(InAppGuideService.keyCandidatesTour),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(candidatesControllerProvider);
     final controller = ref.read(candidatesControllerProvider.notifier);
     // Kicks off the one-time embedder reconciliation (offline → on-device).
@@ -27,10 +72,10 @@ class CandidatesScreen extends ConsumerWidget {
       title: 'Candidates',
       subtitle: 'Your private talent pool — stored only on this device',
       actions: [
-        FilledButton.icon(
+        AppGradientButton(
           onPressed: () => context.push('/import'),
-          icon: const Icon(Icons.add, size: 20),
-          label: const Text('Import'),
+          icon: Icons.add,
+          label: 'Import',
         ),
       ],
       body: AnimatedSwitcher(
@@ -65,32 +110,23 @@ class _CandidatesList extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: const [AppPalette.midnightNavy, Color(0xFF1E3A52)],
+                gradient: const LinearGradient(
+                  colors: [AppPalette.midnightNavy, Color(0xFF1E3A52)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppPalette.midnightNavy.withAlpha(50),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: AppRadius.cardXl,
+                boxShadow: AppShadow.floating(AppPalette.midnightNavy),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(
-                          'assets/logos/Icon Only.png',
-                          width: 24,
-                          height: 24,
-                        ),
+                      Image.asset(
+                        'assets/logos/icon-white.png',
+                        width: 24,
+                        height: 24,
                       ),
                       const SizedBox(width: 8),
                       const Text(
@@ -147,7 +183,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.softIceBlue,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.midnightNavy),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +217,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.warmGold,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.warmGold),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +255,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.oceanTeal,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.oceanTeal),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,11 +288,12 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: context.scheme.surface,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
                           border: Border.all(
-                            color: AppPalette.midnightNavy,
+                            color: context.colors.borderStrong,
                             width: 1.5,
                           ),
+                          boxShadow: AppShadow.soft(context.colors.brand),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,18 +302,18 @@ class _CandidatesList extends StatelessWidget {
                               '18ms',
                               style: context.text.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppPalette.midnightNavy,
+                                color: context.colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.speed,
-                                    size: 16, color: AppPalette.midnightNavy),
+                                Icon(Icons.speed,
+                                    size: 16, color: context.colors.textPrimary),
                                 const SizedBox(width: 4),
                                 Text('Benchmarks',
                                     style: context.text.labelSmall?.copyWith(
-                                        color: AppPalette.midnightNavy)),
+                                        color: context.colors.textPrimary)),
                               ],
                             ),
                           ],
@@ -308,10 +348,10 @@ class _CandidatesList extends StatelessWidget {
                   ? 'Import a CSV of resumes to start building your private talent pool.'
                   : 'Try a different name, skill or role.',
               action: state.resumes.isEmpty
-                  ? FilledButton.icon(
+                  ? AppGradientButton(
                       onPressed: () => context.push('/import'),
-                      icon: const Icon(Icons.upload_file_outlined),
-                      label: const Text('Import resumes'),
+                      icon: Icons.upload_file_outlined,
+                      label: 'Import resumes',
                     )
                   : null,
             ),

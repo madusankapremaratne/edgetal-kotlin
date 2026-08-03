@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import '../theme/theme_x.dart';
 
-/// A bordered, flat surface — the primary container in the minimal design.
+/// A soft-shadowed surface — the primary container in the modernized design.
 ///
 /// When [onTap] is set, the card gives a subtle press-scale and a light
 /// haptic tick so tapping feels tactile, not just visual (ripple alone).
+/// Set [elevated] to false for dense list rows where a flat, bordered-only
+/// look still reads better than a shadow.
 class AppCard extends StatefulWidget {
   const AppCard({
     super.key,
@@ -16,6 +19,7 @@ class AppCard extends StatefulWidget {
     this.onTap,
     this.color,
     this.borderColor,
+    this.elevated = true,
   });
 
   final Widget child;
@@ -23,6 +27,7 @@ class AppCard extends StatefulWidget {
   final VoidCallback? onTap;
   final Color? color;
   final Color? borderColor;
+  final bool elevated;
 
   @override
   State<AppCard> createState() => _AppCardState();
@@ -33,11 +38,20 @@ class _AppCardState extends State<AppCard> {
 
   @override
   Widget build(BuildContext context) {
+    final tint = context.isDark ? context.colors.brand : AppPalette.midnightNavy;
+    final shadow = widget.elevated
+        ? (context.isDark ? AppShadow.cardDark(tint) : AppShadow.card(tint))
+        : null;
+
     final card = Container(
       decoration: BoxDecoration(
         color: widget.color ?? context.scheme.surface,
-        borderRadius: AppRadius.cardLg,
-        border: Border.all(color: widget.borderColor ?? context.colors.border),
+        borderRadius: AppRadius.cardXl,
+        border: Border.all(
+          color: widget.borderColor ??
+              context.colors.border.withValues(alpha: widget.elevated ? 0.6 : 1),
+        ),
+        boxShadow: shadow,
       ),
       padding: widget.padding,
       child: widget.child,
@@ -56,8 +70,78 @@ class _AppCardState extends State<AppCard> {
             widget.onTap!();
           },
           onHighlightChanged: (v) => setState(() => _pressed = v),
-          borderRadius: AppRadius.cardLg,
+          borderRadius: AppRadius.cardXl,
           child: card,
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary-emphasis CTA button with a brand gradient fill and soft glow
+/// shadow. Use sparingly — one per screen for the main action (e.g. "Add
+/// Candidate", "Import", onboarding "Continue").
+class AppGradientButton extends StatelessWidget {
+  const AppGradientButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = onPressed == null;
+    return Opacity(
+      opacity: disabled ? 0.5 : 1,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.field,
+          gradient: AppPalette.brandGradient(),
+          boxShadow: disabled
+              ? null
+              : AppShadow.soft(context.colors.brand).map((s) {
+                  return BoxShadow(
+                    color: context.colors.brand.withValues(alpha: 0.35),
+                    blurRadius: s.blurRadius,
+                    offset: s.offset,
+                  );
+                }).toList(),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: AppRadius.field,
+            onTap: disabled
+                ? null
+                : () {
+                    HapticFeedback.selectionClick();
+                    onPressed!();
+                  },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.md,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 18, color: Colors.white),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                  Text(
+                    label,
+                    style: context.text.labelLarge?.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -147,7 +231,8 @@ class _EmptyStateState extends State<EmptyState>
                 height: 64,
                 decoration: BoxDecoration(
                   color: context.colors.surfaceSubtle,
-                  borderRadius: AppRadius.cardLg,
+                  borderRadius: AppRadius.cardXl,
+                  boxShadow: AppShadow.soft(context.colors.brand),
                 ),
                 child: Icon(widget.icon, size: 30, color: context.colors.textMuted),
               ),
@@ -181,6 +266,7 @@ class AppPill extends StatelessWidget {
     this.color,
     this.background,
     this.icon,
+    this.filled = false,
   });
 
   final String label;
@@ -188,18 +274,29 @@ class AppPill extends StatelessWidget {
   final Color? background;
   final IconData? icon;
 
+  /// High-emphasis variant: solid/gradient fill with white text, used for
+  /// standout badges like top fit-scores instead of a subtle tint chip.
+  final bool filled;
+
   @override
   Widget build(BuildContext context) {
-    final fg = color ?? context.colors.textSecondary;
+    final fg = filled ? Colors.white : (color ?? context.colors.textSecondary);
+    final baseColor = color ?? context.colors.brand;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: icon == null ? 10 : 8,
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: background ?? context.colors.surfaceSubtle,
+        color: filled ? null : (background ?? context.colors.surfaceSubtle),
+        gradient: filled
+            ? LinearGradient(
+                colors: [baseColor, Color.lerp(baseColor, Colors.white, 0.2)!],
+              )
+            : null,
         borderRadius: AppRadius.chip,
-        border: Border.all(color: context.colors.border),
+        border: filled ? null : Border.all(color: context.colors.border),
+        boxShadow: filled ? AppShadow.soft(baseColor) : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -208,9 +305,13 @@ class AppPill extends StatelessWidget {
             Icon(icon, size: 13, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: context.text.labelSmall?.copyWith(color: fg),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.labelSmall?.copyWith(color: fg),
+            ),
           ),
         ],
       ),
@@ -241,7 +342,14 @@ class Monogram extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.16),
+            color.withValues(alpha: 0.06),
+          ],
+        ),
         borderRadius: BorderRadius.circular(size / 3.2),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),

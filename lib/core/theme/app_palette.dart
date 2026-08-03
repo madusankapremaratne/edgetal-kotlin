@@ -67,4 +67,26 @@ class AppPalette {
   static const Color darkSurfaceSubtle = Color(0x49182030);
   static const Color darkSurfaceElevated = Color(0xFF1B2435);
   static const Color darkBorder = Color(0xFF273449);
+
+  /// Brand gradient (ocean teal → a lighter tint of itself), used sparingly
+  /// for primary CTAs and other high-emphasis surfaces. Derived tonally from
+  /// the existing brand hue rather than a new hardcoded color.
+  static LinearGradient brandGradient({double lightenTo = 0.35}) {
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        oceanTeal,
+        Color.lerp(oceanTeal, white, lightenTo)!,
+      ],
+    );
+  }
+
+  /// Amber → gold gradient, used for high-emphasis "insight" / "fit score"
+  /// accents, both already part of the brand palette.
+  static const LinearGradient insightGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [vibrantAmber, warmGold],
+  );
 }

@@ -4,12 +4,15 @@ import '../data/local/local_database.dart';
 import '../data/repository/resume_repository.dart';
 import '../domain/embedding/embedding_provider.dart';
 import '../domain/embedding/native_embedding_provider.dart';
+import '../domain/guide/in_app_guide_service.dart';
 import '../domain/ingestion/embedding_ingestion_service.dart';
+import '../domain/ingestion/folder_import_service.dart';
 import '../domain/llm/candidate_agent.dart';
 import '../domain/llm/inference_backend_preference.dart';
 import '../domain/llm/llm_provider.dart';
 import '../domain/llm/model_download_manager.dart';
 import '../domain/llm/native_llm_provider.dart';
+import '../domain/llm/resume_extraction_agent.dart';
 import '../domain/llm/search_agent.dart';
 import '../domain/monitor/performance_monitor.dart';
 import '../domain/monitor/resource_profiler.dart';
@@ -32,6 +35,9 @@ final resourceProfilerProvider = Provider<ResourceProfiler>((_) => ResourceProfi
 
 final inferenceBackendPreferenceProvider =
     Provider<InferenceBackendPreference>((_) => InferenceBackendPreference());
+
+final inAppGuideServiceProvider =
+    Provider<InAppGuideService>((_) => InAppGuideService());
 
 final embeddingProviderProvider = Provider<EmbeddingProvider>(
   (_) => NativeEmbeddingProvider(),
@@ -65,6 +71,17 @@ final ingestionServiceProvider = Provider<EmbeddingIngestionService>(
     ref.watch(resumeRepositoryProvider),
     ref.watch(embeddingProviderProvider),
     ref.watch(performanceMonitorProvider),
+  ),
+);
+
+final resumeExtractionAgentProvider = Provider<ResumeExtractionAgent>(
+  (ref) => ResumeExtractionAgent(ref.watch(llmProviderProvider)),
+);
+
+final folderImportServiceProvider = Provider<FolderImportService>(
+  (ref) => FolderImportService(
+    ref.watch(resumeRepositoryProvider),
+    ref.watch(resumeExtractionAgentProvider),
   ),
 );
 

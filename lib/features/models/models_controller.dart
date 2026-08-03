@@ -83,16 +83,13 @@ class ModelsController extends StateNotifier<ModelsState> {
 
   Future<void> _initLlmBackend() async {
     final preferred = await _backendPreference.load();
-    if (preferred != 'CPU') {
-      await setLlmBackend(preferred);
-    } else {
-      state = state.copyWith(llmBackend: _llm.activeBackend);
-    }
+    await _llm.setBackend(preferred);
+    state = state.copyWith(llmBackend: _llm.activeBackend);
   }
 
   Future<void> setLlmBackend(String backend) async {
     if (state.switchingBackend) return;
-    state = state.copyWith(switchingBackend: true);
+    state = state.copyWith(switchingBackend: true, llmBackend: backend);
     await _llm.setBackend(backend);
     await _backendPreference.save(backend);
     state = state.copyWith(

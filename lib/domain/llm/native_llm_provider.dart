@@ -35,9 +35,9 @@ class NativeLlmProvider implements LlmProvider {
 
   @override
   Future<bool> initialize() async {
-    if (_nativeReady) return true;
     if (!await _downloads.isModelInstalled()) {
       _nativeReady = false;
+      _activeBackend = _preferredBackend;
       return true; // fallback will serve requests
     }
     try {
@@ -46,12 +46,14 @@ class NativeLlmProvider implements LlmProvider {
         'backend': _preferredBackend,
       });
       _nativeReady = result?['ready'] as bool? ?? false;
-      _activeBackend = result?['backend'] as String? ?? 'CPU';
+      _activeBackend = result?['backend'] as String? ?? _preferredBackend;
     } on MissingPluginException {
       _nativeReady = false;
+      _activeBackend = _preferredBackend;
     } on PlatformException catch (e) {
       debugPrint('Native LLM init failed: ${e.message}');
       _nativeReady = false;
+      _activeBackend = _preferredBackend;
     }
     return true;
   }
@@ -59,6 +61,7 @@ class NativeLlmProvider implements LlmProvider {
   @override
   Future<void> setBackend(String backend) async {
     _preferredBackend = backend;
+    _activeBackend = backend;
     _nativeReady = false;
     await initialize();
   }

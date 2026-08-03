@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/feature_guide_overlay.dart';
+import '../../domain/guide/in_app_guide_service.dart';
 import '../../domain/llm/model_download_manager.dart';
 import '../shared/page_scaffold.dart';
 import 'models_controller.dart';
@@ -21,6 +24,45 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
       TextEditingController(text: ModelDownloadManager.defaultUrl);
   final _tokenController = TextEditingController();
   bool _advanced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGuide());
+  }
+
+  Future<void> _checkGuide() async {
+    final guide = ref.read(inAppGuideServiceProvider);
+    await guide.initialize();
+    if (!mounted) return;
+    if (!guide.isGuideCompleted(InAppGuideService.keyModelsTour)) {
+      FeatureGuideOverlay.show(
+        context,
+        steps: const [
+          GuideStep(
+            title: 'On-Device Text Embedder',
+            description:
+                'MediaPipe Text Embedder runs locally on your device to build 512d vector representations of candidate resumes.',
+            icon: Icons.hub_outlined,
+          ),
+          GuideStep(
+            title: 'Gemma 2B Model Download',
+            description:
+                'Download the 1.3 GB Gemma model once over Wi-Fi for offline AI candidate analysis and match rationale.',
+            icon: Icons.download_outlined,
+          ),
+          GuideStep(
+            title: 'Hardware CPU / GPU Toggle',
+            description:
+                'Switch between CPU execution and hardware GPU delegates (Tensor G2, Snapdragon, Metal) to profile inference latency.',
+            icon: Icons.developer_board_outlined,
+          ),
+        ],
+        onCompleted: () =>
+            guide.markGuideCompleted(InAppGuideService.keyModelsTour),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -42,7 +84,7 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PrivacyBanner(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _ModelTile(
             title: 'Text embedder',
             subtitle: state.embedderLabel.isEmpty
@@ -53,7 +95,7 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
             statusColor:
                 state.embedderNative ? context.colors.privacy : context.colors.warning,
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _LlmCard(
             state: state,
             onDownload: () => notifier.startDownload(
@@ -63,9 +105,9 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
             onCancel: notifier.cancel,
             onDelete: () => _confirmDelete(context, notifier, state.installedBytes),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _BackendCard(state: state, onSelect: notifier.setLlmBackend),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _AdvancedCard(
             expanded: _advanced,
             onToggle: () => setState(() => _advanced = !_advanced),
@@ -115,13 +157,18 @@ class _PrivacyBanner extends StatelessWidget {
       borderColor: context.colors.privacy.withValues(alpha: 0.3),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: AppShadow.soft(context.colors.privacy),
+            ),
             child: Image.asset(
-              'assets/logos/Icon Only.png',
-              width: 36,
-              height: 36,
-              fit: BoxFit.cover,
+              'assets/logos/icon-navy.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -309,16 +356,12 @@ class _DownloadButton extends StatelessWidget {
     final label = resume
         ? 'Resume download (${formatBytes(state.partialBytes)} done)'
         : 'Download model (~1.3 GB)';
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: AppGradientButton(
         onPressed: onDownload,
-        icon: const Icon(Icons.download_outlined, size: 20),
-        label: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: fadeThroughTransition,
-          child: Text(label, key: ValueKey(label)),
-        ),
+        icon: Icons.download_outlined,
+        label: label,
       ),
     );
   }

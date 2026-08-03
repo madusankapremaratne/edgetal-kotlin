@@ -63,10 +63,10 @@ class InsightsScreen extends ConsumerWidget {
                     title: 'No measurements yet',
                     message:
                         'Run the evaluation suite to benchmark on-device retrieval latency and precision.',
-                    action: FilledButton.icon(
+                    action: AppGradientButton(
                       onPressed: notifier.runAutoBenchmark,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Run evaluation suite'),
+                      icon: Icons.play_arrow_rounded,
+                      label: 'Run evaluation suite',
                     ),
                   )
                 else ...[
@@ -110,7 +110,7 @@ class InsightsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.xl),
                   const SectionHeader(title: 'Recent measurements'),
                   const SizedBox(height: AppSpacing.md),
                   for (final (i, m) in state.metrics.reversed.indexed)

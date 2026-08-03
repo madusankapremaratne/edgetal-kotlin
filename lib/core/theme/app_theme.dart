@@ -61,23 +61,23 @@ class AppTheme {
 
     final textTheme = baseTextTheme.copyWith(
       displaySmall: baseTextTheme.displaySmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.6,
         color: colors.textPrimary,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.6,
         color: colors.textPrimary,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
         fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
+        letterSpacing: -0.4,
         color: colors.textPrimary,
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
+        letterSpacing: -0.3,
         color: colors.textPrimary,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
@@ -129,7 +129,9 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         foregroundColor: colors.textPrimary,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 4,
+        shadowColor: (isLight ? AppPalette.midnightNavy : Colors.black)
+            .withValues(alpha: isLight ? 0.08 : 0.4),
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
         systemOverlayStyle:
@@ -138,11 +140,15 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: scheme.surface,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: isLight ? 3 : 6,
+        shadowColor: (isLight ? AppPalette.midnightNavy : Colors.black)
+            .withValues(alpha: isLight ? 0.10 : 0.5),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.cardLg,
-          side: BorderSide(color: colors.border),
+          borderRadius: AppRadius.cardXl,
+          side: BorderSide(
+            color: colors.border.withValues(alpha: isLight ? 0.6 : 1),
+          ),
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -208,7 +214,10 @@ class AppTheme {
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
         indicatorColor: colors.brandSubtle,
-        elevation: 0,
+        indicatorShape: const StadiumBorder(),
+        elevation: 8,
+        shadowColor: (isLight ? AppPalette.midnightNavy : Colors.black)
+            .withValues(alpha: isLight ? 0.10 : 0.5),
         height: 68,
         labelTextStyle: WidgetStatePropertyAll(textTheme.labelMedium),
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -244,7 +253,10 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardLg),
+        elevation: 8,
+        shadowColor: (isLight ? AppPalette.midnightNavy : Colors.black)
+            .withValues(alpha: isLight ? 0.12 : 0.5),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardXl),
       ),
     );
   }

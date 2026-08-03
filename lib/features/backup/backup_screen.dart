@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../shared/page_scaffold.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -50,7 +51,7 @@ class _BackupScreenState extends State<BackupScreen> {
                   labelStyle: TextStyle(
                     color: _selectedFormat == 'CSV'
                         ? Colors.white
-                        : AppPalette.midnightNavy,
+                        : context.colors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                   onSelected: (selected) {
@@ -67,7 +68,7 @@ class _BackupScreenState extends State<BackupScreen> {
                   labelStyle: TextStyle(
                     color: _selectedFormat == 'JSON'
                         ? Colors.white
-                        : AppPalette.midnightNavy,
+                        : context.colors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                   onSelected: (selected) {
@@ -82,13 +83,14 @@ class _BackupScreenState extends State<BackupScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppPalette.softIceBlue.withAlpha(80),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppPalette.softIceBlue),
+              color: context.colors.brandSubtle,
+              borderRadius: AppRadius.cardXl,
+              border: Border.all(color: context.colors.border),
+              boxShadow: AppShadow.soft(AppPalette.midnightNavy),
             ),
             child: Row(
               children: [
-                const Icon(Icons.folder_open, color: AppPalette.midnightNavy),
+                Icon(Icons.folder_open, color: context.colors.textPrimary),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -98,7 +100,7 @@ class _BackupScreenState extends State<BackupScreen> {
                         'Destination: Local Device Storage',
                         style: context.text.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppPalette.midnightNavy,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       Text(
@@ -110,31 +112,16 @@ class _BackupScreenState extends State<BackupScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppPalette.midnightNavy),
+                Icon(Icons.chevron_right, color: context.colors.textPrimary),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
           // Export Button
-          SizedBox(
-            height: 50,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.midnightNavy,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: _runExport,
-              child: const Text(
-                'Export All Candidate Data',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          AppGradientButton(
+            onPressed: _runExport,
+            icon: Icons.ios_share,
+            label: 'Export All Candidate Data',
           ),
           if (_exportSuccess) ...[
             const SizedBox(height: AppSpacing.lg),
@@ -142,8 +129,9 @@ class _BackupScreenState extends State<BackupScreen> {
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: AppPalette.privacyEmerald.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.cardXl,
                 border: Border.all(color: AppPalette.privacyEmerald),
+                boxShadow: AppShadow.soft(AppPalette.privacyEmerald),
               ),
               child: Row(
                 children: [

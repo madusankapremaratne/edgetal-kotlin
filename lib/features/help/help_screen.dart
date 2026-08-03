@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../shared/page_scaffold.dart';
 
-class HelpScreen extends StatelessWidget {
+class HelpScreen extends ConsumerWidget {
   const HelpScreen({super.key});
 
   static const _faqs = [
@@ -32,7 +35,7 @@ class HelpScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PageScaffold(
       title: 'Help / How It Works',
       subtitle: 'Plain answers, no jargon',
@@ -42,7 +45,45 @@ class HelpScreen extends StatelessWidget {
       ),
       scrollableBody: true,
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          AppCard(
+            color: context.colors.brandSubtle,
+            borderColor: context.colors.brand.withValues(alpha: 0.3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.tour_outlined, color: context.colors.brand),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Interactive Feature Tours', style: context.text.titleSmall),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Want to replay the onboarding guides for candidate search, multi-source resume import, and on-device models?',
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                AppGradientButton(
+                  icon: Icons.refresh,
+                  label: 'Replay Feature Tours',
+                  onPressed: () async {
+                    final guide = ref.read(inAppGuideServiceProvider);
+                    await guide.resetAllGuides();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Feature tours reset! Re-visit any screen to view its guided tour.'),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
           for (final faq in _faqs) ...[
             _FaqCard(faq: faq),
             const SizedBox(height: AppSpacing.md),
@@ -74,14 +115,13 @@ class _FaqCardState extends State<_FaqCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _expanded
-            ? AppPalette.softIceBlue.withAlpha(100)
-            : context.scheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: _expanded ? context.colors.brandSubtle : context.scheme.surface,
+        borderRadius: AppRadius.cardXl,
         border: Border.all(
-          color: AppPalette.softIceBlue,
+          color: context.colors.border,
           width: 1,
         ),
+        boxShadow: AppShadow.soft(AppPalette.midnightNavy),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(
@@ -92,12 +132,12 @@ class _FaqCardState extends State<_FaqCard> {
           widget.faq.question,
           style: context.text.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppPalette.midnightNavy,
+            color: context.colors.textPrimary,
           ),
         ),
         trailing: Icon(
           _expanded ? Icons.expand_less : Icons.expand_more,
-          color: AppPalette.midnightNavy,
+          color: context.colors.textPrimary,
         ),
         onExpansionChanged: (expanded) =>
             setState(() => _expanded = expanded),

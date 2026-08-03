@@ -57,6 +57,7 @@ class _Tile extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.colors.brandSubtle,
               borderRadius: BorderRadius.circular(8),
+              boxShadow: AppShadow.soft(context.colors.brand),
             ),
             child: Icon(item.icon, size: 16, color: context.colors.brand),
           ),

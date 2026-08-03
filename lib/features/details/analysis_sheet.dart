@@ -6,10 +6,11 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/models/resume.dart';
+import '../jobs/jobs_controller.dart';
 import 'analysis_controller.dart';
 
 /// Modal sheet that runs the on-device "fit analysis" agent for a candidate
-/// against a pasted role description.
+/// against a selected Job Role or custom role description.
 class AnalysisSheet {
   static Future<void> show(BuildContext context, Resume resume) {
     return showModalBottomSheet<void>(
@@ -34,7 +35,8 @@ class _AnalysisSheetBody extends ConsumerStatefulWidget {
 
 class _AnalysisSheetBodyState extends ConsumerState<_AnalysisSheetBody> {
   final _roleController = TextEditingController();
-  static const _maxChars = 400;
+  static const _maxChars = 600;
+  String? _selectedJobId;
 
   @override
   void dispose() {
@@ -46,6 +48,7 @@ class _AnalysisSheetBodyState extends ConsumerState<_AnalysisSheetBody> {
   Widget build(BuildContext context) {
     final state = ref.watch(analysisControllerProvider);
     final notifier = ref.read(analysisControllerProvider.notifier);
+    final jobsState = ref.watch(jobsControllerProvider);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -86,7 +89,42 @@ class _AnalysisSheetBodyState extends ConsumerState<_AnalysisSheetBody> {
             ),
             Text('Candidate: ${widget.resume.fullName}',
                 style: context.text.bodySmall),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
+
+            // Job Role Selector Dropdown
+            if (jobsState.jobs.isNotEmpty && state is AnalysisIdle) ...[
+              DropdownButtonFormField<String>(
+                value: _selectedJobId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Select Job Role',
+                  prefixIcon: Icon(Icons.work_outline, size: 20),
+                ),
+                hint: const Text('Choose a job role or enter custom text below'),
+                items: [
+                  for (final job in jobsState.jobs)
+                    DropdownMenuItem(
+                      value: job.id,
+                      child: Text(
+                        '${job.title} (${job.company})',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (jobId) {
+                  setState(() {
+                    _selectedJobId = jobId;
+                    if (jobId != null) {
+                      final selectedJob = jobsState.jobs.firstWhere((j) => j.id == jobId);
+                      _roleController.text =
+                          'Role: ${selectedJob.title} (${selectedJob.company})\n\n${selectedJob.description}';
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+
             _Body(
               state: state,
               roleController: _roleController,
@@ -96,7 +134,16 @@ class _AnalysisSheetBodyState extends ConsumerState<_AnalysisSheetBody> {
             const SizedBox(height: AppSpacing.lg),
             _Actions(
               state: state,
-              onAnalyse: () => notifier.analyze(widget.resume, _roleController.text),
+              onAnalyse: () {
+                if (_selectedJobId != null) {
+                  ref.read(jobsControllerProvider.notifier).assignCandidateToJob(
+                        jobId: _selectedJobId!,
+                        candidateId: widget.resume.id.toString(),
+                        stage: 'Shortlisted',
+                      );
+                }
+                notifier.analyze(widget.resume, _roleController.text);
+              },
               onReset: notifier.reset,
               canAnalyse: _roleController.text.trim().isNotEmpty,
             ),
@@ -190,9 +237,10 @@ class _Body extends StatelessWidget {
       maxLength: maxChars,
       onChanged: (_) => onRoleChanged(),
       decoration: const InputDecoration(
+        labelText: 'Job Requirements & Description',
         hintText:
-            'Paste the role / requirements, e.g. “Senior backend engineer, '
-            'Kafka, Kubernetes, leads a small team.”',
+            'Select a job above or paste role requirements, e.g. “Senior backend engineer, '
+            'Kotlin, Microservices, leads a small team.”',
       ),
     );
   }
@@ -275,10 +323,10 @@ class _Actions extends StatelessWidget {
         ],
       );
     }
-    return FilledButton.icon(
+    return AppGradientButton(
       onPressed: canAnalyse ? onAnalyse : null,
-      icon: const Icon(Icons.auto_awesome, size: 18),
-      label: const Text('Analyse fit'),
+      icon: Icons.auto_awesome,
+      label: 'Analyse fit',
     );
   }
 }

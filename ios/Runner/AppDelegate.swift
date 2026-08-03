@@ -2,33 +2,22 @@ import Flutter
 import UIKit
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      AppDelegate.registerMlChannels(messenger: controller.binaryMessenger)
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "EdgeTalMl") {
-      AppDelegate.registerMlChannels(messenger: registrar.messenger())
-    }
-  }
+  private static let embedderChannel = EmbedderChannel()
 
-  /// On-device ML channels — iOS stub.
-  ///
-  /// Same contract as the Android implementation (`edgetal/embedder`,
-  /// `edgetal/llm`). Returning `notImplemented` / `false` lets the Dart
-  /// `NativeEmbeddingProvider` / `NativeLlmProvider` fall back to the offline
-  /// providers, so the app runs unchanged on iOS.
-  ///
-  /// TODO: implement with the MediaPipeTasksText / MediaPipeTasksGenAI iOS pods,
-  /// mirroring `EmbedderChannel.kt` / `LlmChannel.kt` on Android.
   static func registerMlChannels(messenger: FlutterBinaryMessenger) {
-    let embedder = FlutterMethodChannel(name: "edgetal/embedder", binaryMessenger: messenger)
-    embedder.setMethodCallHandler { _, result in result(FlutterMethodNotImplemented) }
+    embedderChannel.register(messenger: messenger)
 
     let llm = FlutterMethodChannel(name: "edgetal/llm", binaryMessenger: messenger)
     llm.setMethodCallHandler { call, result in

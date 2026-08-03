@@ -154,10 +154,10 @@ class _HeaderCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: AppGradientButton(
               onPressed: () => AnalysisSheet.show(context, resume),
-              icon: const Icon(Icons.auto_awesome, size: 18),
-              label: const Text('Analyse fit with AI'),
+              icon: Icons.auto_awesome,
+              label: 'Analyse fit with AI',
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
