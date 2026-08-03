@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
 import 'onboarding_controller.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -96,13 +97,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          'assets/logos/Icon Only.png',
-                          width: 28,
-                          height: 28,
-                        ),
+                      Image.asset(
+                        isDark
+                            ? 'assets/logos/icon-white.png'
+                            : 'assets/logos/icon-navy.png',
+                        width: 28,
+                        height: 28,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -148,11 +148,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             color: isDark
                                 ? AppPalette.darkSurfaceElevated
                                 : AppPalette.softIceBlue.withAlpha(100),
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: AppRadius.cardXl,
                             border: Border.all(
                               color: context.colors.border,
                               width: 1,
                             ),
+                            boxShadow: isDark
+                                ? AppShadow.softDark(context.colors.brand)
+                                : AppShadow.soft(context.colors.brand),
                           ),
                           child: Center(
                             child: Column(
@@ -225,8 +228,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         width: _currentPage == index ? 24 : 8,
                         decoration: BoxDecoration(
                           color: _currentPage == index
-                              ? AppPalette.midnightNavy
-                              : AppPalette.softIceBlue,
+                              ? context.colors.brand
+                              : context.colors.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -236,25 +239,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   // Primary CTA Button ("Get Started" or "Next")
                   SizedBox(
                     width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppPalette.midnightNavy,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                    child: AppGradientButton(
                       onPressed: _nextPage,
-                      child: Text(
-                        _currentPage == _slides.length - 1
-                            ? 'Get Started'
-                            : 'Next',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      label: _currentPage == _slides.length - 1
+                          ? 'Get Started'
+                          : 'Next',
                     ),
                   ),
                 ],

@@ -275,10 +275,10 @@ class _Actions extends StatelessWidget {
         ],
       );
     }
-    return FilledButton.icon(
+    return AppGradientButton(
       onPressed: canAnalyse ? onAnalyse : null,
-      icon: const Icon(Icons.auto_awesome, size: 18),
-      label: const Text('Analyse fit'),
+      icon: Icons.auto_awesome,
+      label: 'Analyse fit',
     );
   }
 }

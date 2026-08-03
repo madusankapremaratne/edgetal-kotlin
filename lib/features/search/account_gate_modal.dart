@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
 
 class AccountGateModal extends StatelessWidget {
   const AccountGateModal({super.key, required this.onContinue});
@@ -69,7 +70,7 @@ class AccountGateModal extends StatelessWidget {
             'Save your shortlists across sessions',
             style: context.text.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppPalette.midnightNavy,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -99,26 +100,12 @@ class AccountGateModal extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppPalette.midnightNavy,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            child: AppGradientButton(
               onPressed: () {
                 Navigator.pop(context);
                 onContinue();
               },
-              child: const Text(
-                'Continue to Create Free Account',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              label: 'Continue to Create Free Account',
             ),
           ),
         ],

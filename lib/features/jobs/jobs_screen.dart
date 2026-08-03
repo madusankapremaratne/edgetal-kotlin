@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
 import '../../data/models/job.dart';
 import '../shared/page_scaffold.dart';
 import 'jobs_controller.dart';
@@ -19,13 +20,10 @@ class JobsScreen extends ConsumerWidget {
       title: 'Jobs',
       subtitle: "Roles you're hiring for — tracked on this device",
       actions: [
-        FilledButton.icon(
+        AppGradientButton(
           onPressed: () => _showAddJobDialog(context, ref),
-          icon: const Icon(Icons.add, size: 20),
-          label: const Text('+ New job'),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppPalette.midnightNavy,
-          ),
+          icon: Icons.add,
+          label: '+ New job',
         ),
       ],
       scrollableBody: true,
@@ -110,13 +108,14 @@ class _JobCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isOpen
-            ? AppPalette.softIceBlue.withAlpha(80)
-            : AppPalette.midnightNavy.withAlpha(15),
-        borderRadius: BorderRadius.circular(16),
+        color: isOpen ? context.colors.brandSubtle : context.colors.surfaceSubtle,
+        borderRadius: AppRadius.cardXl,
         border: Border.all(
-          color: AppPalette.softIceBlue,
+          color: context.colors.border,
           width: 1,
+        ),
+        boxShadow: AppShadow.soft(
+          isOpen ? AppPalette.oceanTeal : AppPalette.midnightNavy,
         ),
       ),
       child: Column(
@@ -130,7 +129,7 @@ class _JobCard extends StatelessWidget {
                   job.title,
                   style: context.text.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppPalette.midnightNavy,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -218,7 +217,7 @@ class _StageDot extends StatelessWidget {
         Text(
           label,
           style: context.text.labelSmall?.copyWith(
-            color: AppPalette.midnightNavy,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),

@@ -197,10 +197,10 @@ class _UrlCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          FilledButton.icon(
+          AppGradientButton(
             onPressed: busy ? null : onImport,
-            icon: const Icon(Icons.download_outlined, size: 20),
-            label: const Text('Import from URL'),
+            icon: Icons.download_outlined,
+            label: 'Import from URL',
           ),
         ],
       ),
@@ -224,10 +224,10 @@ class _FileCard extends StatelessWidget {
             subtitle: 'Choose a CSV from this device',
           ),
           const SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
+          AppGradientButton(
             onPressed: busy ? null : onPick,
-            icon: const Icon(Icons.folder_open_outlined, size: 20),
-            label: const Text('Choose CSV file'),
+            icon: Icons.folder_open_outlined,
+            label: 'Choose CSV file',
           ),
         ],
       ),

@@ -83,10 +83,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           Row(
             children: [
               Expanded(
-                child: FilledButton.icon(
+                child: AppGradientButton(
                   onPressed: _controller.text.trim().isEmpty ? null : _run,
-                  icon: const Icon(Icons.search, size: 20),
-                  label: const Text('Search'),
+                  icon: Icons.search,
+                  label: 'Search',
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -102,7 +102,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           Expanded(child: _Results(model: model, onPickExample: (e) {
             _controller.text = e;
             setState(() {});
@@ -165,11 +165,11 @@ class _Results extends ConsumerWidget {
         icon: Icons.search_off_outlined,
         title: 'No close matches',
         message: 'Try AI assist to broaden the query automatically.',
-        action: FilledButton.icon(
+        action: AppGradientButton(
           onPressed: () =>
               ref.read(searchControllerProvider.notifier).agenticSearch(model.query),
-          icon: const Icon(Icons.auto_awesome, size: 18),
-          label: const Text('AI assist'),
+          icon: Icons.auto_awesome,
+          label: 'AI assist',
         ),
       );
     }

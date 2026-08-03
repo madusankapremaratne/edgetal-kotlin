@@ -21,9 +21,22 @@ class DrawerPanel extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: AppPalette.warmGold,
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppPalette.warmGold,
+                          Color.lerp(AppPalette.warmGold, Colors.white, 0.25)!,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: AppShadow.soft(AppPalette.warmGold),
+                    ),
                     child: Text(
                       'AK',
                       style: context.text.titleMedium?.copyWith(
@@ -41,7 +54,7 @@ class DrawerPanel extends StatelessWidget {
                           'Alex Kim',
                           style: context.text.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppPalette.midnightNavy,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         Text(
@@ -56,7 +69,7 @@ class DrawerPanel extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(color: AppPalette.softIceBlue, height: 1),
+            Divider(color: context.colors.border, height: 1),
             const SizedBox(height: AppSpacing.md),
             // Menu Items
             _DrawerTile(
@@ -108,16 +121,16 @@ class DrawerPanel extends StatelessWidget {
               },
             ),
             const Spacer(),
-            const Divider(color: AppPalette.softIceBlue, height: 1),
+            Divider(color: context.colors.border, height: 1),
             // Muted Sign Out (Page 9 spec)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: ListTile(
-                leading: const Icon(Icons.logout, color: AppPalette.slate400, size: 20),
+                leading: Icon(Icons.logout, color: context.colors.textMuted, size: 20),
                 title: Text(
                   'Sign out',
                   style: context.text.bodyMedium?.copyWith(
-                    color: AppPalette.slate400,
+                    color: context.colors.textMuted,
                   ),
                 ),
                 onTap: () {
@@ -147,33 +160,63 @@ class _DrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: AppPalette.midnightNavy, size: 22),
-      title: Text(
-        label,
-        style: context.text.labelLarge?.copyWith(
-          color: AppPalette.midnightNavy,
-          fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppRadius.field,
+        child: InkWell(
+          borderRadius: AppRadius.field,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: context.colors.brandSubtle,
+                    borderRadius: AppRadius.field,
+                  ),
+                  child: Icon(icon, color: context.colors.brand, size: 19),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: context.text.labelLarge?.copyWith(
+                      color: context.colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (badgeCount != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      gradient: AppPalette.insightGradient,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: AppShadow.soft(AppPalette.vibrantAmber),
+                    ),
+                    child: Text(
+                      '$badgeCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
-      trailing: badgeCount != null
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppPalette.vibrantAmber,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$badgeCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          : null,
-      onTap: onTap,
     );
   }
 }

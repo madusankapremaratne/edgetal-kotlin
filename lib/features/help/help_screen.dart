@@ -74,14 +74,13 @@ class _FaqCardState extends State<_FaqCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _expanded
-            ? AppPalette.softIceBlue.withAlpha(100)
-            : context.scheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: _expanded ? context.colors.brandSubtle : context.scheme.surface,
+        borderRadius: AppRadius.cardXl,
         border: Border.all(
-          color: AppPalette.softIceBlue,
+          color: context.colors.border,
           width: 1,
         ),
+        boxShadow: AppShadow.soft(AppPalette.midnightNavy),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(
@@ -92,12 +91,12 @@ class _FaqCardState extends State<_FaqCard> {
           widget.faq.question,
           style: context.text.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppPalette.midnightNavy,
+            color: context.colors.textPrimary,
           ),
         ),
         trailing: Icon(
           _expanded ? Icons.expand_less : Icons.expand_more,
-          color: AppPalette.midnightNavy,
+          color: context.colors.textPrimary,
         ),
         onExpansionChanged: (expanded) =>
             setState(() => _expanded = expanded),

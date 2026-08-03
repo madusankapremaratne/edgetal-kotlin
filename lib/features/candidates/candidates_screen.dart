@@ -27,10 +27,10 @@ class CandidatesScreen extends ConsumerWidget {
       title: 'Candidates',
       subtitle: 'Your private talent pool — stored only on this device',
       actions: [
-        FilledButton.icon(
+        AppGradientButton(
           onPressed: () => context.push('/import'),
-          icon: const Icon(Icons.add, size: 20),
-          label: const Text('Import'),
+          icon: Icons.add,
+          label: 'Import',
         ),
       ],
       body: AnimatedSwitcher(
@@ -65,32 +65,23 @@ class _CandidatesList extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: const [AppPalette.midnightNavy, Color(0xFF1E3A52)],
+                gradient: const LinearGradient(
+                  colors: [AppPalette.midnightNavy, Color(0xFF1E3A52)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppPalette.midnightNavy.withAlpha(50),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: AppRadius.cardXl,
+                boxShadow: AppShadow.floating(AppPalette.midnightNavy),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(
-                          'assets/logos/Icon Only.png',
-                          width: 24,
-                          height: 24,
-                        ),
+                      Image.asset(
+                        'assets/logos/icon-white.png',
+                        width: 24,
+                        height: 24,
                       ),
                       const SizedBox(width: 8),
                       const Text(
@@ -147,7 +138,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.softIceBlue,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.midnightNavy),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +172,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.warmGold,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.warmGold),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +210,8 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppPalette.oceanTeal,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
+                          boxShadow: AppShadow.soft(AppPalette.oceanTeal),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,11 +243,12 @@ class _CandidatesList extends StatelessWidget {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: context.scheme.surface,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.cardXl,
                           border: Border.all(
-                            color: AppPalette.midnightNavy,
+                            color: context.colors.borderStrong,
                             width: 1.5,
                           ),
+                          boxShadow: AppShadow.soft(context.colors.brand),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,18 +257,18 @@ class _CandidatesList extends StatelessWidget {
                               '18ms',
                               style: context.text.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppPalette.midnightNavy,
+                                color: context.colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.speed,
-                                    size: 16, color: AppPalette.midnightNavy),
+                                Icon(Icons.speed,
+                                    size: 16, color: context.colors.textPrimary),
                                 const SizedBox(width: 4),
                                 Text('Benchmarks',
                                     style: context.text.labelSmall?.copyWith(
-                                        color: AppPalette.midnightNavy)),
+                                        color: context.colors.textPrimary)),
                               ],
                             ),
                           ],
@@ -308,10 +303,10 @@ class _CandidatesList extends StatelessWidget {
                   ? 'Import a CSV of resumes to start building your private talent pool.'
                   : 'Try a different name, skill or role.',
               action: state.resumes.isEmpty
-                  ? FilledButton.icon(
+                  ? AppGradientButton(
                       onPressed: () => context.push('/import'),
-                      icon: const Icon(Icons.upload_file_outlined),
-                      label: const Text('Import resumes'),
+                      icon: Icons.upload_file_outlined,
+                      label: 'Import resumes',
                     )
                   : null,
             ),

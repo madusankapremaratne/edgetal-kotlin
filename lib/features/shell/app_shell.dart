@@ -207,7 +207,9 @@ class _BrandMark extends StatelessWidget {
         Container(
           width: 36,
           height: 36,
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
+            color: context.colors.brandSubtle,
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
@@ -217,12 +219,9 @@ class _BrandMark extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              'assets/logos/Icon Only.png',
-              fit: BoxFit.cover,
-            ),
+          child: Image.asset(
+            isDark ? 'assets/logos/icon-white.png' : 'assets/logos/icon-navy.png',
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(width: AppSpacing.sm),

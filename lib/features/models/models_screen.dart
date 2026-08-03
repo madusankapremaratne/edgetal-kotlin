@@ -42,7 +42,7 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PrivacyBanner(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _ModelTile(
             title: 'Text embedder',
             subtitle: state.embedderLabel.isEmpty
@@ -53,7 +53,7 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
             statusColor:
                 state.embedderNative ? context.colors.privacy : context.colors.warning,
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _LlmCard(
             state: state,
             onDownload: () => notifier.startDownload(
@@ -63,9 +63,9 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
             onCancel: notifier.cancel,
             onDelete: () => _confirmDelete(context, notifier, state.installedBytes),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _BackendCard(state: state, onSelect: notifier.setLlmBackend),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _AdvancedCard(
             expanded: _advanced,
             onToggle: () => setState(() => _advanced = !_advanced),
@@ -115,13 +115,18 @@ class _PrivacyBanner extends StatelessWidget {
       borderColor: context.colors.privacy.withValues(alpha: 0.3),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: AppShadow.soft(context.colors.privacy),
+            ),
             child: Image.asset(
-              'assets/logos/Icon Only.png',
-              width: 36,
-              height: 36,
-              fit: BoxFit.cover,
+              'assets/logos/icon-navy.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -309,16 +314,12 @@ class _DownloadButton extends StatelessWidget {
     final label = resume
         ? 'Resume download (${formatBytes(state.partialBytes)} done)'
         : 'Download model (~1.3 GB)';
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: AppGradientButton(
         onPressed: onDownload,
-        icon: const Icon(Icons.download_outlined, size: 20),
-        label: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: fadeThroughTransition,
-          child: Text(label, key: ValueKey(label)),
-        ),
+        icon: Icons.download_outlined,
+        label: label,
       ),
     );
   }
