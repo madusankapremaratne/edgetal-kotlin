@@ -1,7 +1,7 @@
 name: edgetal
 description: "EdgeTal — private, on-device talent intelligence. GDPR by design."
 publish_to: "none"
-version: 1.0.0-beta.1+2
+version: 1.0.1+5
 
 environment:
   sdk: ^3.12.0

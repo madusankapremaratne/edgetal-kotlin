@@ -50,13 +50,8 @@ class ImportController extends StateNotifier<ImportUiState> {
   final LlmProvider _llm;
   final Ref _ref;
 
-  /// Folder import needs a real OS folder picker — only reliable on
-  /// Android (SAF) and macOS (NSOpenPanel) today. iOS's sandboxed file
-  /// picker doesn't expose a clean folder-selection flow, so the entry
-  /// point is hidden there (see import_screen.dart); this check is a
-  /// defensive backstop in case the method is ever reached another way.
-  static bool get isFolderImportSupported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isMacOS);
+  /// Supported on all mobile and desktop platforms.
+  static bool get isFolderImportSupported => !kIsWeb;
 
   Future<void> importFromUrl(String url) async {
     final target = url.trim();

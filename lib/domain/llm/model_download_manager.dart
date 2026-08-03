@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -34,7 +35,6 @@ class DownloadFailed extends DownloadState {
 
 /// Downloads the Gemma model into private app storage, with HTTP range-based
 /// resume so an interrupted ~1.3 GB transfer continues where it left off.
-/// Mirrors the original `ModelDownloadManager` behaviour.
 class ModelDownloadManager {
   ModelDownloadManager._();
   static final ModelDownloadManager instance = ModelDownloadManager._();
@@ -49,12 +49,16 @@ class ModelDownloadManager {
   Stream<DownloadState> get state => _stateController.stream;
   DownloadState current = const DownloadIdle();
 
-  Directory? _dir;
   http.Client? _client;
   bool _cancelRequested = false;
 
-  Future<Directory> get _directory async =>
-      _dir ??= await getApplicationSupportDirectory();
+  Future<Directory> get _directory async {
+    final dir = await getApplicationSupportDirectory();
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
 
   Future<File> get _modelFile async =>
       File('${(await _directory).path}/$modelFileName');
@@ -66,11 +70,43 @@ class ModelDownloadManager {
     if (!_stateController.isClosed) _stateController.add(s);
   }
 
-  Future<bool> isModelInstalled() async => (await _modelFile).exists();
+  Future<bool> isModelInstalled() async {
+    try {
+      final model = await _modelFile;
+      if (await model.exists()) {
+        final len = await model.length();
+        if (len > 100 * 1024 * 1024) return true; // Valid installed model (>100MB)
+      }
+      // Check if a completed .part file exists and needs final promotion to .bin
+      final part = await _partFile;
+      if (await part.exists()) {
+        final len = await part.length();
+        if (len >= approxSizeBytes - 50000000) {
+          try {
+            if (await model.exists()) await model.delete();
+            await part.rename(model.path);
+            return true;
+          } catch (_) {
+            try {
+              await part.copy(model.path);
+              await part.delete();
+              return true;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking model status: $e');
+    }
+    return false;
+  }
 
   Future<int> installedSizeBytes() async {
     final f = await _modelFile;
-    return await f.exists() ? await f.length() : 0;
+    if (await f.exists()) return await f.length();
+    final p = await _partFile;
+    if (await p.exists()) return await p.length();
+    return 0;
   }
 
   Future<int> partialSizeBytes() async {
@@ -86,8 +122,12 @@ class ModelDownloadManager {
     await cancelDownload(silent: true);
     final model = await _modelFile;
     final part = await _partFile;
-    if (await model.exists()) await model.delete();
-    if (await part.exists()) await part.delete();
+    try {
+      if (await model.exists()) await model.delete();
+      if (await part.exists()) await part.delete();
+    } catch (e) {
+      debugPrint('Error deleting model files: $e');
+    }
     _emit(const DownloadIdle());
   }
 
@@ -122,7 +162,20 @@ class ModelDownloadManager {
     _client = client;
 
     try {
-      final request = http.Request('GET', Uri.parse(target));
+      // Follow redirects to get final LFS CDN URL for reliable Range header support
+      String finalUrl = target;
+      try {
+        final headReq = http.Request('HEAD', Uri.parse(target));
+        if (accessToken != null && accessToken.trim().isNotEmpty) {
+          headReq.headers['Authorization'] = 'Bearer ${accessToken.trim()}';
+        }
+        final headRes = await client.send(headReq);
+        if (headRes.headers.containsKey('location')) {
+          finalUrl = headRes.headers['location']!;
+        }
+      } catch (_) {}
+
+      final request = http.Request('GET', Uri.parse(finalUrl));
       if (accessToken != null && accessToken.trim().isNotEmpty) {
         request.headers['Authorization'] = 'Bearer ${accessToken.trim()}';
       }
@@ -133,9 +186,9 @@ class ModelDownloadManager {
       final response = await client.send(request);
 
       if (response.statusCode == 401 || response.statusCode == 403) {
-        _emit(DownloadFailed(
-          'Access denied (HTTP ${response.statusCode}). This model may be '
-          'gated — accept its license on Hugging Face and add an access token.',
+        _emit(const DownloadFailed(
+          'Access denied (HTTP 401/403). This model may be gated — accept '
+          'its license on Hugging Face and add an access token.',
         ));
         return;
       }
@@ -148,20 +201,15 @@ class ModelDownloadManager {
       final serverResumed = response.statusCode == 206;
       var bytesDownloaded = serverResumed ? resumeFrom : 0;
       if (!serverResumed && resumeFrom > 0 && await part.exists()) {
-        await part.delete();
+        // If server refused range, start fresh
+        try {
+          await part.delete();
+        } catch (_) {}
         resumeFrom = 0;
       }
       final contentLength = response.contentLength ?? 0;
       final totalBytes =
           contentLength > 0 ? contentLength + (serverResumed ? resumeFrom : 0) : 0;
-
-      final dir = await _directory;
-      final stat = await dir.stat();
-      // Best-effort free-space check is platform-dependent; skip if unknown.
-      if (stat.type == FileSystemEntityType.notFound) {
-        _emit(const DownloadFailed('Storage directory unavailable'));
-        return;
-      }
 
       final sink = (await _partFile)
           .openWrite(mode: serverResumed ? FileMode.append : FileMode.write);
@@ -172,7 +220,7 @@ class ModelDownloadManager {
       await for (final chunk in response.stream) {
         if (_cancelRequested) {
           await sink.close();
-          return; // paused state already emitted by cancelDownload
+          return;
         }
         sink.add(chunk);
         bytesDownloaded += chunk.length;
@@ -190,6 +238,7 @@ class ModelDownloadManager {
           bytesSinceEmit = 0;
         }
       }
+      await sink.flush();
       await sink.close();
 
       if (totalBytes > 0 && bytesDownloaded < totalBytes) {
@@ -201,7 +250,18 @@ class ModelDownloadManager {
         return;
       }
 
-      await (await _partFile).rename((await _modelFile).path);
+      // Promote .part file to .bin file safely
+      final partFile = await _partFile;
+      final modelFile = await _modelFile;
+      try {
+        if (await modelFile.exists()) await modelFile.delete();
+        await partFile.rename(modelFile.path);
+      } catch (_) {
+        // Copy & delete fallback for cross-filesystem / permission boundary
+        await partFile.copy(modelFile.path);
+        if (await partFile.exists()) await partFile.delete();
+      }
+
       _emit(const DownloadCompleted());
     } on Object catch (e) {
       if (_cancelRequested) return;

@@ -7,6 +7,8 @@ import 'llm_provider.dart';
 /// parse — so the agentic search and AI-analysis flows are fully demonstrable
 /// without the ~1.3 GB Gemma model. Marked clearly as a heuristic in the UI.
 class MockLlmProvider implements LlmProvider {
+  String _activeBackend = 'CPU';
+
   @override
   bool get isModelAvailable => true;
 
@@ -14,13 +16,15 @@ class MockLlmProvider implements LlmProvider {
   bool get isNativeActive => false;
 
   @override
-  String get activeBackend => 'CPU';
+  String get activeBackend => _activeBackend;
 
   @override
   Future<bool> initialize() async => true;
 
   @override
-  Future<void> setBackend(String backend) async {}
+  Future<void> setBackend(String backend) async {
+    _activeBackend = backend;
+  }
 
   @override
   Future<String> generateResponse(String prompt) async {

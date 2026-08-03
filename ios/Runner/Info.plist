@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EdgeTal requires access to your photo library to select and import candidate resume documents on-device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>EdgeTal requires camera access to scan physical candidate resumes directly on-device.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EdgeTal uses location to filter nearby candidate intelligence and local talent events.</string>
 </dict>
 </plist>
