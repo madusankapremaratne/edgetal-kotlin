@@ -122,11 +122,20 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      transitionBuilder: fadeThroughTransition,
+      child: _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     if (state is AnalysisRunning) {
       return Column(
+        key: const ValueKey('running'),
         children: [
           const SizedBox(height: AppSpacing.lg),
-          const CircularProgressIndicator(),
+          const LoadingDots(),
           const SizedBox(height: AppSpacing.lg),
           Text((state as AnalysisRunning).step,
               style: context.text.bodyMedium, textAlign: TextAlign.center),
@@ -136,6 +145,7 @@ class _Body extends StatelessWidget {
     }
     if (state is AnalysisFailed) {
       return _Banner(
+        key: const ValueKey('failed'),
         icon: Icons.error_outline,
         color: context.scheme.error,
         text: (state as AnalysisFailed).message,
@@ -144,6 +154,7 @@ class _Body extends StatelessWidget {
     if (state is AnalysisDone) {
       final done = state as AnalysisDone;
       return Column(
+        key: const ValueKey('done'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SourceBadge(onDevice: done.onDevice),
@@ -173,6 +184,7 @@ class _Body extends StatelessWidget {
     }
     // Idle
     return TextField(
+      key: const ValueKey('idle'),
       controller: roleController,
       maxLines: 4,
       maxLength: maxChars,
@@ -272,7 +284,7 @@ class _Actions extends StatelessWidget {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({required this.icon, required this.color, required this.text});
+  const _Banner({super.key, required this.icon, required this.color, required this.text});
   final IconData icon;
   final Color color;
   final String text;

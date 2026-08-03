@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/performance_metric.dart';
+import '../models/resource_sample.dart';
 import '../models/resume.dart';
 import '../models/resume_embedding.dart';
 import '../models/search_query.dart';
@@ -25,11 +26,13 @@ class LocalDatabase {
   final List<ResumeEmbedding> embeddings = [];
   final List<SearchQuery> searchQueries = [];
   final List<PerformanceMetric> metrics = [];
+  final List<ResourceSample> resourceSamples = [];
 
   int _resumeSeq = 1;
   int _embeddingSeq = 1;
   int _querySeq = 1;
   int _metricSeq = 1;
+  int _resourceSampleSeq = 1;
 
   bool _initialized = false;
   Directory? _dir;
@@ -38,6 +41,7 @@ class LocalDatabase {
   int nextEmbeddingId() => _embeddingSeq++;
   int nextQueryId() => _querySeq++;
   int nextMetricId() => _metricSeq++;
+  int nextResourceSampleId() => _resourceSampleSeq++;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -61,11 +65,15 @@ class LocalDatabase {
     metrics
       ..clear()
       ..addAll(await _readList('metrics', PerformanceMetric.fromJson));
+    resourceSamples
+      ..clear()
+      ..addAll(await _readList('resource_samples', ResourceSample.fromJson));
 
     _resumeSeq = _maxId(resumes.map((e) => e.id)) + 1;
     _embeddingSeq = _maxId(embeddings.map((e) => e.id)) + 1;
     _querySeq = _maxId(searchQueries.map((e) => e.id)) + 1;
     _metricSeq = _maxId(metrics.map((e) => e.id)) + 1;
+    _resourceSampleSeq = _maxId(resourceSamples.map((e) => e.id)) + 1;
   }
 
   int _maxId(Iterable<int> ids) =>
@@ -97,6 +105,8 @@ class LocalDatabase {
       _write('queries', searchQueries.map((e) => e.toJson()).toList());
   Future<void> persistMetrics() =>
       _write('metrics', metrics.map((e) => e.toJson()).toList());
+  Future<void> persistResourceSamples() => _write(
+      'resource_samples', resourceSamples.map((e) => e.toJson()).toList());
 
   Future<void> _write(String name, List<Map<String, dynamic>> data) async {
     if (_dir == null) return;

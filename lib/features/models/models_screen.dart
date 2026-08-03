@@ -64,6 +64,8 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
             onDelete: () => _confirmDelete(context, notifier, state.installedBytes),
           ),
           const SizedBox(height: AppSpacing.lg),
+          _BackendCard(state: state, onSelect: notifier.setLlmBackend),
+          const SizedBox(height: AppSpacing.lg),
           _AdvancedCard(
             expanded: _advanced,
             onToggle: () => setState(() => _advanced = !_advanced),
@@ -113,14 +115,39 @@ class _PrivacyBanner extends StatelessWidget {
       borderColor: context.colors.privacy.withValues(alpha: 0.3),
       child: Row(
         children: [
-          Icon(Icons.verified_user_outlined, color: context.colors.privacy),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/logos/Icon Only.png',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+            ),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(
-              'GDPR by design: candidate data and AI inference never leave this '
-              'device. Models are downloaded once, then run fully offline.',
-              style: context.text.bodySmall
-                  ?.copyWith(color: context.colors.onPrivacySubtle),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'EdgeTal Beta · 100% On-Device AI',
+                      style: context.text.labelLarge?.copyWith(
+                        color: context.colors.onPrivacySubtle,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'GDPR by design: candidate data and AI inference never leave this '
+                  'device. Models are downloaded once, then run fully offline.',
+                  style: context.text.bodySmall
+                      ?.copyWith(color: context.colors.onPrivacySubtle),
+                ),
+              ],
             ),
           ),
         ],
@@ -223,24 +250,37 @@ class _LlmCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (download is Downloading)
-            _Progress(state: download, onCancel: onCancel)
-          else if (download is DownloadFailed) ...[
-            Text(download.message,
-                style: context.text.bodySmall?.copyWith(color: context.scheme.error)),
-            if (!state.isInstalled) ...[
-              const SizedBox(height: AppSpacing.md),
-              _DownloadButton(state: state, onDownload: onDownload),
-            ],
-          ] else if (!state.isInstalled) ...[
-            Text(
-              'Download once over Wi-Fi (~1.3 GB). Everything runs on-device '
-              'afterwards — no data leaves your phone.',
-              style: context.text.bodySmall,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            transitionBuilder: fadeThroughTransition,
+            child: KeyedSubtree(
+              key: ValueKey(download.runtimeType),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (download is Downloading)
+                    _Progress(state: download, onCancel: onCancel)
+                  else if (download is DownloadFailed) ...[
+                    Text(download.message,
+                        style: context.text.bodySmall
+                            ?.copyWith(color: context.scheme.error)),
+                    if (!state.isInstalled) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _DownloadButton(state: state, onDownload: onDownload),
+                    ],
+                  ] else if (!state.isInstalled) ...[
+                    Text(
+                      'Download once over Wi-Fi (~1.3 GB). Everything runs on-device '
+                      'afterwards — no data leaves your phone.',
+                      style: context.text.bodySmall,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _DownloadButton(state: state, onDownload: onDownload),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            _DownloadButton(state: state, onDownload: onDownload),
-          ],
+          ),
           if (state.isInstalled) ...[
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
@@ -266,15 +306,18 @@ class _DownloadButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resume = state.partialBytes > 0;
+    final label = resume
+        ? 'Resume download (${formatBytes(state.partialBytes)} done)'
+        : 'Download model (~1.3 GB)';
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
         onPressed: onDownload,
         icon: const Icon(Icons.download_outlined, size: 20),
-        label: Text(
-          resume
-              ? 'Resume download (${formatBytes(state.partialBytes)} done)'
-              : 'Download model (~1.3 GB)',
+        label: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          transitionBuilder: fadeThroughTransition,
+          child: Text(label, key: ValueKey(label)),
         ),
       ),
     );
@@ -314,6 +357,74 @@ class _Progress extends StatelessWidget {
           label: const Text('Pause'),
         ),
       ],
+    );
+  }
+}
+
+/// LLM inference backend (CPU/GPU) toggle — feeds the paper's resource
+/// analysis GPU-delegation comparison. Embedding stays CPU-only (see
+/// [NativeEmbeddingProvider]); this only switches the LLM channel.
+class _BackendCard extends StatelessWidget {
+  const _BackendCard({required this.state, required this.onSelect});
+
+  final ModelsState state;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.developer_board_outlined,
+                  size: 18, color: context.colors.textSecondary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text('LLM inference backend', style: context.text.titleSmall),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'GPU delegation depends on the device SoC (e.g. Tensor G2) and can '
+            'silently fall back to CPU — the badge below reflects what actually '
+            'loaded, not just what was requested.',
+            style: context.text.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'CPU', label: Text('CPU')),
+                    ButtonSegment(value: 'GPU', label: Text('GPU')),
+                  ],
+                  selected: {state.llmBackend},
+                  onSelectionChanged: state.switchingBackend
+                      ? null
+                      : (selection) => onSelect(selection.first),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              if (state.switchingBackend)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                AppPill(
+                  label: 'Active: ${state.llmBackend}',
+                  color: context.colors.privacy,
+                  background: context.colors.privacySubtle,
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

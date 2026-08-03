@@ -19,10 +19,17 @@ import java.util.concurrent.Executors
  * path to `initialize` (so the two sides never disagree about the location).
  * A fresh session per `generate` keeps prompts independent (no context bleed
  * between the search-reformulation and candidate-analysis agents).
+ *
+ * `initialize` accepts an optional `backend` ("CPU"/"GPU", default CPU) for
+ * the resource-analysis GPU-delegate comparison. GPU is attempted via
+ * [LlmInference.Backend.GPU]; if MediaPipe rejects it on the target device,
+ * the session falls back to CPU and the *actual* backend that loaded is
+ * reported back in the result — never assume the request was honoured.
  */
 class LlmChannel(private val context: Context) {
 
     private var inference: LlmInference? = null
+    private var activeBackend: String = "CPU"
     private val executor = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
@@ -31,20 +38,23 @@ class LlmChannel(private val context: Context) {
             when (call.method) {
                 "initialize" -> {
                     val modelPath = call.argument<String>("modelPath")
+                    val requestedBackend = call.argument<String>("backend") ?: "CPU"
                     executor.execute {
                         try {
                             if (modelPath == null || !File(modelPath).exists()) {
-                                main.post { result.success(false) }
+                                main.post {
+                                    result.success(mapOf("ready" to false, "backend" to activeBackend))
+                                }
                                 return@execute
                             }
-                            if (inference == null) {
-                                val options = LlmInference.LlmInferenceOptions.builder()
-                                    .setModelPath(modelPath)
-                                    .setMaxTokens(512)
-                                    .build()
-                                inference = LlmInference.createFromOptions(context, options)
+                            if (inference == null || activeBackend != requestedBackend) {
+                                inference?.close()
+                                inference = null
+                                activeBackend = buildInference(modelPath, requestedBackend)
                             }
-                            main.post { result.success(true) }
+                            main.post {
+                                result.success(mapOf("ready" to true, "backend" to activeBackend))
+                            }
                         } catch (e: Exception) {
                             main.post { result.error("LLM_INIT_FAILED", e.message, null) }
                         }
@@ -75,5 +85,36 @@ class LlmChannel(private val context: Context) {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    /**
+     * Builds [inference] for the requested backend, returning whichever
+     * backend actually ended up loaded. GPU delegation can throw on devices/
+     * ops MediaPipe doesn't support (e.g. the Redmi Note 7's Snapdragon 660
+     * has no comparable GPU delegate path) — that failure is caught here and
+     * silently retried on CPU rather than surfaced as an init error, since
+     * CPU-only is always a valid outcome to report in the resource analysis.
+     */
+    private fun buildInference(modelPath: String, requestedBackend: String): String {
+        if (requestedBackend == "GPU") {
+            try {
+                val gpuOptions = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelPath)
+                    .setMaxTokens(512)
+                    .setPreferredBackend(LlmInference.Backend.GPU)
+                    .build()
+                inference = LlmInference.createFromOptions(context, gpuOptions)
+                return "GPU"
+            } catch (e: Exception) {
+                inference = null
+            }
+        }
+        val cpuOptions = LlmInference.LlmInferenceOptions.builder()
+            .setModelPath(modelPath)
+            .setMaxTokens(512)
+            .setPreferredBackend(LlmInference.Backend.CPU)
+            .build()
+        inference = LlmInference.createFromOptions(context, cpuOptions)
+        return "CPU"
     }
 }

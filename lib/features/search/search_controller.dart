@@ -48,24 +48,28 @@ class SearchModel {
     this.query = '',
     this.executionMs = 0,
     this.resultCount = 0,
+    this.searchCount = 0,
   });
 
   final SearchUiState state;
   final String query;
   final int executionMs;
   final int resultCount;
+  final int searchCount;
 
   SearchModel copyWith({
     SearchUiState? state,
     String? query,
     int? executionMs,
     int? resultCount,
+    int? searchCount,
   }) =>
       SearchModel(
         state: state ?? this.state,
         query: query ?? this.query,
         executionMs: executionMs ?? this.executionMs,
         resultCount: resultCount ?? this.resultCount,
+        searchCount: searchCount ?? this.searchCount,
       );
 }
 
@@ -156,6 +160,7 @@ class SearchController extends StateNotifier<SearchModel> {
       query: query,
       executionMs: sw.elapsedMilliseconds,
       resultCount: results.length,
+      searchCount: state.searchCount + 1,
     );
     await _repo.recordSearchQuery(SearchQuery(
       queryText: query,

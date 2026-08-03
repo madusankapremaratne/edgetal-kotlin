@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import 'drawer_panel.dart';
 
 class NavItem {
   const NavItem(this.icon, this.selectedIcon, this.label);
@@ -15,7 +17,7 @@ class NavItem {
 const _items = [
   NavItem(Icons.groups_outlined, Icons.groups, 'Candidates'),
   NavItem(Icons.search_outlined, Icons.search, 'Search'),
-  NavItem(Icons.insights_outlined, Icons.insights, 'Insights'),
+  NavItem(Icons.work_outline, Icons.work, 'Jobs'),
   NavItem(Icons.memory_outlined, Icons.memory, 'Models'),
 ];
 
@@ -26,10 +28,13 @@ class AppShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  void _go(int index) => navigationShell.goBranch(
-        index,
-        initialLocation: index == navigationShell.currentIndex,
-      );
+  void _go(int index) {
+    if (index != navigationShell.currentIndex) HapticFeedback.selectionClick();
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +42,7 @@ class AppShell extends StatelessWidget {
 
     if (wide) {
       return Scaffold(
+        drawer: const DrawerPanel(),
         body: Row(
           children: [
             _Rail(
@@ -51,6 +57,7 @@ class AppShell extends StatelessWidget {
     }
 
     return Scaffold(
+      drawer: const DrawerPanel(),
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
@@ -129,37 +136,54 @@ class _RailTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  static const _duration = Duration(milliseconds: 220);
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: 3),
       child: Material(
-        color: selected ? context.colors.brandSubtle : Colors.transparent,
+        color: Colors.transparent,
         borderRadius: AppRadius.card,
         child: InkWell(
           borderRadius: AppRadius.card,
           onTap: onTap,
-          child: Padding(
+          child: AnimatedContainer(
+            duration: _duration,
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              color: selected ? context.colors.brandSubtle : Colors.transparent,
+              borderRadius: AppRadius.card,
+            ),
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: AppSpacing.md),
             child: Row(
               children: [
-                Icon(
-                  selected ? item.selectedIcon : item.icon,
-                  size: 22,
-                  color: selected ? context.colors.brand : context.colors.textMuted,
+                AnimatedSwitcher(
+                  duration: _duration,
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: Icon(
+                    selected ? item.selectedIcon : item.icon,
+                    key: ValueKey(selected),
+                    size: 22,
+                    color: selected ? context.colors.brand : context.colors.textMuted,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.labelLarge?.copyWith(
+                  child: AnimatedDefaultTextStyle(
+                    duration: _duration,
+                    style: context.text.labelLarge!.copyWith(
                       color: selected
                           ? context.colors.brand
                           : context.colors.textSecondary,
+                    ),
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -177,28 +201,81 @@ class _BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppPalette.indigo500, AppPalette.indigo700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
             borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: context.colors.brand.withAlpha(40),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: const Icon(Icons.eco_outlined, color: Colors.white, size: 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/logos/Icon Only.png',
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        Flexible(
-          child: Text(
-            'EdgeTal',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.text.titleLarge,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      'EdgeTal',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: context.colors.brandSubtle,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: context.colors.brand.withAlpha(60),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      'BETA',
+                      style: context.text.labelSmall?.copyWith(
+                        color: context.colors.brand,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                'On-Device Intelligence',
+                style: context.text.labelSmall?.copyWith(
+                  color: context.colors.textMuted,
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
         ),
       ],

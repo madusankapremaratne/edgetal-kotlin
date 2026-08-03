@@ -19,6 +19,8 @@ class NativeLlmProvider implements LlmProvider {
   final ModelDownloadManager _downloads;
   final LlmProvider _fallback;
   bool _nativeReady = false;
+  String _preferredBackend = 'CPU';
+  String _activeBackend = 'CPU';
 
   @override
   bool get isNativeActive => _nativeReady;
@@ -29,6 +31,9 @@ class NativeLlmProvider implements LlmProvider {
   bool get isModelAvailable => true;
 
   @override
+  String get activeBackend => _activeBackend;
+
+  @override
   Future<bool> initialize() async {
     if (_nativeReady) return true;
     if (!await _downloads.isModelInstalled()) {
@@ -36,10 +41,12 @@ class NativeLlmProvider implements LlmProvider {
       return true; // fallback will serve requests
     }
     try {
-      final ok = await _channel.invokeMethod<bool>('initialize', {
+      final result = await _channel.invokeMapMethod<String, dynamic>('initialize', {
         'modelPath': await _downloads.modelFilePath(),
+        'backend': _preferredBackend,
       });
-      _nativeReady = ok ?? false;
+      _nativeReady = result?['ready'] as bool? ?? false;
+      _activeBackend = result?['backend'] as String? ?? 'CPU';
     } on MissingPluginException {
       _nativeReady = false;
     } on PlatformException catch (e) {
@@ -47,6 +54,13 @@ class NativeLlmProvider implements LlmProvider {
       _nativeReady = false;
     }
     return true;
+  }
+
+  @override
+  Future<void> setBackend(String backend) async {
+    _preferredBackend = backend;
+    _nativeReady = false;
+    await initialize();
   }
 
   @override

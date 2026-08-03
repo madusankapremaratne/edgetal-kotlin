@@ -11,7 +11,12 @@ class StatItem {
   final IconData icon;
 }
 
-/// A responsive row of small metric tiles.
+/// A single-row strip of compact metric tiles.
+///
+/// Always horizontal — sized so 2-3 tiles fit comfortably on a phone screen,
+/// avoiding a previous stacked-column fallback whose default
+/// [CrossAxisAlignment.center] shrank each card to its content width,
+/// producing narrow, centered "islands" with dead space on either side.
 class StatStrip extends StatelessWidget {
   const StatStrip({super.key, required this.items});
 
@@ -19,30 +24,13 @@ class StatStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stacked = constraints.maxWidth < 420;
-        final tiles = [
-          for (final item in items)
-            stacked
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: _Tile(item: item),
-                  )
-                : Expanded(child: _Tile(item: item)),
-        ];
-        if (stacked) {
-          return Column(children: tiles);
-        }
-        return Row(
-          children: [
-            for (var i = 0; i < tiles.length; i++) ...[
-              tiles[i],
-              if (i != tiles.length - 1) const SizedBox(width: AppSpacing.md),
-            ],
-          ],
-        );
-      },
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          Expanded(child: _Tile(item: items[i])),
+          if (i != items.length - 1) const SizedBox(width: AppSpacing.sm),
+        ],
+      ],
     );
   }
 }
@@ -54,15 +42,46 @@ class _Tile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(item.icon, size: 20, color: context.colors.brand),
-          const SizedBox(height: AppSpacing.md),
-          Text(item.value, style: context.text.headlineSmall),
-          const SizedBox(height: 2),
-          Text(item.label, style: context.text.labelSmall),
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: context.colors.brandSubtle,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(item.icon, size: 16, color: context.colors.brand),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Fade+pop whenever the underlying value changes, so a stat that
+          // updates (e.g. candidate count after an import) draws the eye
+          // instead of silently jumping.
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            transitionBuilder: fadeThroughTransition,
+            child: Text(
+              item.value,
+              key: ValueKey(item.value),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.titleLarge,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            item.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.text.labelSmall,
+          ),
         ],
       ),
     );

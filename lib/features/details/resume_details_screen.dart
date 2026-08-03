@@ -29,23 +29,30 @@ class ResumeDetailsScreen extends ConsumerWidget {
         icon: const Icon(Icons.arrow_back),
       ),
       scrollableBody: true,
-      body: Builder(
-        builder: (context) {
-          if (state.loading) {
-            return const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (state.error != null || state.resume == null) {
-            return EmptyState(
-              icon: Icons.person_off_outlined,
-              title: 'Profile unavailable',
-              message: state.error,
-            );
-          }
-          return _Profile(resume: state.resume!, highlight: state.highlight);
-        },
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        transitionBuilder: fadeThroughTransition,
+        child: Builder(
+          key: ValueKey(state.loading || state.resume == null
+              ? 'loading-or-error'
+              : 'profile-${state.resume!.id}'),
+          builder: (context) {
+            if (state.loading) {
+              return const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(child: LoadingDots()),
+              );
+            }
+            if (state.error != null || state.resume == null) {
+              return EmptyState(
+                icon: Icons.person_off_outlined,
+                title: 'Profile unavailable',
+                message: state.error,
+              );
+            }
+            return _Profile(resume: state.resume!, highlight: state.highlight);
+          },
+        ),
       ),
     );
   }
@@ -58,55 +65,52 @@ class _Profile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sections = <Widget>[
+      _HeaderCard(resume: resume),
+      if (resume.summary.isNotEmpty)
+        _Section(
+          title: 'Summary',
+          child: _Highlighted(text: resume.summary, highlight: highlight),
+        ),
+      if (resume.skillList.isNotEmpty)
+        _Section(
+          title: 'Skills',
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final s in resume.skillList)
+                AppPill(
+                  label: s,
+                  color: context.colors.onBrandSubtle,
+                  background: context.colors.brandSubtle,
+                ),
+            ],
+          ),
+        ),
+      if (resume.experience.isNotEmpty)
+        _Section(
+          title: 'Experience',
+          child: _Highlighted(text: resume.experience, highlight: highlight),
+        ),
+      if (resume.education.isNotEmpty)
+        _Section(
+          title: 'Education',
+          child: _Highlighted(text: resume.education, highlight: highlight),
+        ),
+      if (resume.certifications.isNotEmpty)
+        _Section(
+          title: 'Certifications',
+          child: _Highlighted(text: resume.certifications, highlight: highlight),
+        ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _HeaderCard(resume: resume),
-        if (resume.summary.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Summary',
-            child: _Highlighted(text: resume.summary, highlight: highlight),
-          ),
-        ],
-        if (resume.skillList.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Skills',
-            child: Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                for (final s in resume.skillList)
-                  AppPill(
-                    label: s,
-                    color: context.colors.onBrandSubtle,
-                    background: context.colors.brandSubtle,
-                  ),
-              ],
-            ),
-          ),
-        ],
-        if (resume.experience.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Experience',
-            child: _Highlighted(text: resume.experience, highlight: highlight),
-          ),
-        ],
-        if (resume.education.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Education',
-            child: _Highlighted(text: resume.education, highlight: highlight),
-          ),
-        ],
-        if (resume.certifications.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.lg),
-          _Section(
-            title: 'Certifications',
-            child: _Highlighted(text: resume.certifications, highlight: highlight),
-          ),
+        for (var i = 0; i < sections.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.lg),
+          StaggeredEntrance(index: i, child: sections[i]),
         ],
         const SizedBox(height: AppSpacing.xxl),
       ],
@@ -124,7 +128,10 @@ class _HeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         children: [
-          Monogram(text: resume.initials, seed: resume.fullName, size: 72),
+          Hero(
+            tag: 'avatar-${resume.id}',
+            child: Monogram(text: resume.initials, seed: resume.fullName, size: 72),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Text(resume.fullName,
               style: context.text.headlineSmall, textAlign: TextAlign.center),

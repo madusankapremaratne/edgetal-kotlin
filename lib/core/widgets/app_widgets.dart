@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_spacing.dart';
 import '../theme/theme_x.dart';
 
 /// A bordered, flat surface — the primary container in the minimal design.
-class AppCard extends StatelessWidget {
+///
+/// When [onTap] is set, the card gives a subtle press-scale and a light
+/// haptic tick so tapping feels tactile, not just visual (ripple alone).
+class AppCard extends StatefulWidget {
   const AppCard({
     super.key,
     required this.child,
@@ -21,23 +25,40 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
 
   @override
+  State<AppCard> createState() => _AppCardState();
+}
+
+class _AppCardState extends State<AppCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final card = Container(
       decoration: BoxDecoration(
-        color: color ?? context.scheme.surface,
+        color: widget.color ?? context.scheme.surface,
         borderRadius: AppRadius.cardLg,
-        border: Border.all(color: borderColor ?? context.colors.border),
+        border: Border.all(color: widget.borderColor ?? context.colors.border),
       ),
-      padding: padding,
-      child: child,
+      padding: widget.padding,
+      child: widget.child,
     );
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.cardLg,
-        child: card,
+    if (widget.onTap == null) return card;
+
+    return AnimatedScale(
+      scale: _pressed ? 0.98 : 1,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            widget.onTap!();
+          },
+          onHighlightChanged: (v) => setState(() => _pressed = v),
+          borderRadius: AppRadius.cardLg,
+          child: card,
+        ),
       ),
     );
   }
@@ -75,7 +96,10 @@ class SectionHeader extends StatelessWidget {
 }
 
 /// Centered empty / zero-state with an icon, message and optional action.
-class EmptyState extends StatelessWidget {
+///
+/// The icon "breathes" gently so an empty screen still feels alive rather
+/// than inert.
+class EmptyState extends StatefulWidget {
   const EmptyState({
     super.key,
     required this.icon,
@@ -90,6 +114,23 @@ class EmptyState extends StatelessWidget {
   final Widget? action;
 
   @override
+  State<EmptyState> createState() => _EmptyStateState();
+}
+
+class _EmptyStateState extends State<EmptyState>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
@@ -97,28 +138,33 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: context.colors.surfaceSubtle,
-                borderRadius: AppRadius.cardLg,
+            ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1.04).animate(
+                CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
               ),
-              child: Icon(icon, size: 30, color: context.colors.textMuted),
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: context.colors.surfaceSubtle,
+                  borderRadius: AppRadius.cardLg,
+                ),
+                child: Icon(widget.icon, size: 30, color: context.colors.textMuted),
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(title, style: context.text.titleMedium, textAlign: TextAlign.center),
-            if (message != null) ...[
+            Text(widget.title, style: context.text.titleMedium, textAlign: TextAlign.center),
+            if (widget.message != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
-                message!,
+                widget.message!,
                 style: context.text.bodyMedium,
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[
+            if (widget.action != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              action!,
+              widget.action!,
             ],
           ],
         ),
@@ -209,4 +255,106 @@ class Monogram extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Fades and slides a child in once, with a delay proportional to [index].
+/// Drop this around list items to turn an abrupt appearance into a gentle
+/// cascade — purely cosmetic, no effect on layout or state.
+class StaggeredEntrance extends StatelessWidget {
+  const StaggeredEntrance({super.key, required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final delayMs = index.clamp(0, 10) * 45;
+    const riseMs = 300;
+    final totalMs = delayMs + riseMs;
+    final delayFraction = delayMs / totalMs;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: totalMs),
+      curve: Interval(delayFraction, 1.0, curve: Curves.easeOutCubic),
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 14),
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Three softly bouncing dots — used in place of a bare spinner for "the
+/// on-device model is thinking" moments (search, analysis), so waiting reads
+/// as active work rather than a stall.
+class LoadingDots extends StatefulWidget {
+  const LoadingDots({super.key, this.color});
+
+  final Color? color;
+
+  @override
+  State<LoadingDots> createState() => _LoadingDotsState();
+}
+
+class _LoadingDotsState extends State<LoadingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1000),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.color ?? context.colors.brand;
+    return SizedBox(
+      height: 18,
+      width: 52,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(3, (i) {
+              final t = (_controller.value - i * 0.2) % 1.0;
+              final bounce = t < 0.5 ? (t / 0.5) : (1 - (t - 0.5) / 0.5);
+              return Transform.translate(
+                offset: Offset(0, -6 * bounce.clamp(0.0, 1.0)),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Shared fade + gentle scale transition for [AnimatedSwitcher], so state
+/// changes across screens (loading → content, idle → results) share one
+/// consistent motion instead of a hard cut.
+Widget fadeThroughTransition(Widget child, Animation<double> animation) {
+  return FadeTransition(
+    opacity: animation,
+    child: ScaleTransition(
+      scale: Tween<double>(begin: 0.98, end: 1).animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      ),
+      child: child,
+    ),
+  );
 }

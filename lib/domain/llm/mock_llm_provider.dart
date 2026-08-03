@@ -14,7 +14,13 @@ class MockLlmProvider implements LlmProvider {
   bool get isNativeActive => false;
 
   @override
+  String get activeBackend => 'CPU';
+
+  @override
   Future<bool> initialize() async => true;
+
+  @override
+  Future<void> setBackend(String backend) async {}
 
   @override
   Future<String> generateResponse(String prompt) async {

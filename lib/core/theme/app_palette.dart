@@ -8,6 +8,14 @@ import 'package:flutter/material.dart';
 class AppPalette {
   AppPalette._();
 
+  // EdgeTal Official Brand Palette (extracted from assets/logos/edgetal.png)
+  static const Color midnightNavy = Color(0xFF133046);   // #133046 Header/Dark Surface/Primary Text
+  static const Color oceanTeal = Color(0xFF4B9CB3);      // #4B9CB3 Primary Interactive Brand Accent
+  static const Color softIceBlue = Color(0xFFA9D0E5);     // #A9D0E5 Card Surface Tint & Search Border
+  static const Color warmGold = Color(0xFFEFBB47);        // #EFBB47 High Fit Score & Ratings
+  static const Color vibrantAmber = Color(0xFFE8842E);    // #E8842E Insights & Action Highlights
+  static const Color privacyEmerald = Color(0xFF2E9E5B);  // #2E9E5B 100% On-Device Privacy Badge
+
   // Brand — Indigo
   static const Color indigo50 = Color(0xFFEEF1FF);
   static const Color indigo100 = Color(0xFFE0E5FF);

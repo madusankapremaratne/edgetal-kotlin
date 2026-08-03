@@ -6,7 +6,11 @@ import '../../core/theme/theme_x.dart';
 /// Consistent page chrome: a clean header (title, subtitle, actions) over a
 /// width-constrained body. Replaces per-screen AppBars for a calmer, more
 /// editorial feel suited to long review sessions.
-class PageScaffold extends StatelessWidget {
+///
+/// Content fades and rises in once when the page first mounts — a single
+/// AnimationController that runs once in [initState], so it never restarts on
+/// ordinary rebuilds (e.g. typing in a filter field).
+class PageScaffold extends StatefulWidget {
   const PageScaffold({
     super.key,
     required this.title,
@@ -27,39 +31,74 @@ class PageScaffold extends StatelessWidget {
   final bool scrollableBody;
 
   @override
+  State<PageScaffold> createState() => _PageScaffoldState();
+}
+
+class _PageScaffoldState extends State<PageScaffold>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  )..forward();
+
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(maxWidth: AppSpacing.contentMaxWidth),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.lg,
-              AppSpacing.lg,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(
-                  title: title,
-                  subtitle: subtitle,
-                  actions: actions,
-                  leading: leading,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Expanded(
-                  child: scrollableBody
-                      ? SingleChildScrollView(
-                          padding:
-                              const EdgeInsets.only(bottom: AppSpacing.xxl),
-                          child: body,
-                        )
-                      : body,
-                ),
-              ],
+    // A Material ancestor so screens work whether they're hosted inside the
+    // shell's Scaffold (tabs) or pushed directly by the root navigator
+    // (Import, candidate Details) — TextField/InkWell require one.
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(maxWidth: AppSpacing.contentMaxWidth),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Header(
+                    title: widget.title,
+                    subtitle: widget.subtitle,
+                    actions: widget.actions,
+                    leading: widget.leading,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fade,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.02),
+                          end: Offset.zero,
+                        ).animate(_fade),
+                        child: widget.scrollableBody
+                            ? SingleChildScrollView(
+                                padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.xxl),
+                                child: widget.body,
+                              )
+                            : widget.body,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -83,12 +122,22 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaffold = Scaffold.maybeOf(context);
+    final hasDrawer = scaffold?.hasDrawer ?? false;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (leading != null) ...[
           leading!,
           const SizedBox(width: AppSpacing.md),
+        ] else if (hasDrawer) ...[
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Menu',
+            onPressed: () => scaffold?.openDrawer(),
+          ),
+          const SizedBox(width: AppSpacing.sm),
         ],
         Expanded(
           child: Column(

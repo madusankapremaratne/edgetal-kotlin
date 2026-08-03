@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -44,6 +45,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     ref.listen(importControllerProvider, (_, next) {
       if (next is ImportSuccess) {
+        HapticFeedback.mediumImpact();
         final router = GoRouter.of(context);
         Future.delayed(const Duration(milliseconds: 1400), () {
           if (!mounted) return;
@@ -79,10 +81,25 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             })
           else
             _FileCard(busy: busy, onPick: _pickFile),
-          if (state is! ImportIdle) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _StatusCard(state: state, onDismiss: notifier.reset),
-          ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: state is ImportIdle
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.lg),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      transitionBuilder: fadeThroughTransition,
+                      child: _StatusCard(
+                        key: ValueKey(state.runtimeType),
+                        state: state,
+                        onDismiss: notifier.reset,
+                      ),
+                    ),
+                  ),
+          ),
           const SizedBox(height: AppSpacing.lg),
           _ReindexCard(busy: busy, onRun: notifier.generateEmbeddings),
           const SizedBox(height: AppSpacing.lg),
@@ -219,7 +236,7 @@ class _FileCard extends StatelessWidget {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.state, required this.onDismiss});
+  const _StatusCard({super.key, required this.state, required this.onDismiss});
   final ImportUiState state;
   final VoidCallback onDismiss;
 

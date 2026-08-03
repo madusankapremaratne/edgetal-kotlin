@@ -1,7 +1,7 @@
 name: edgetal
 description: "EdgeTal — private, on-device talent intelligence. GDPR by design."
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.0-beta.1+2
 
 environment:
   sdk: ^3.12.0
@@ -37,8 +37,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/logos/edgetal-logo-512.png"
+  min_sdk_android: 26
 
 flutter:
   uses-material-design: true
   assets:
     - assets/data/
+    - assets/logos/

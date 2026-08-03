@@ -42,7 +42,10 @@ android {
 dependencies {
     // On-device ML — mirrors the original EdgeTal Kotlin app (MediaPipe 0.10.18).
     implementation("com.google.mediapipe:tasks-text:0.10.18")
-    implementation("com.google.mediapipe:tasks-genai:0.10.18")
+    // 0.10.21+ adds LlmInferenceOptions.Builder.setPreferredBackend(Backend),
+    // needed for the CPU/GPU delegate toggle in LlmChannel.kt. tasks-text
+    // stays pinned since the embedder remains CPU-only (see plan notes).
+    implementation("com.google.mediapipe:tasks-genai:0.10.21")
 }
 
 kotlin {

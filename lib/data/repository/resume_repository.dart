@@ -1,5 +1,6 @@
 import '../local/local_database.dart';
 import '../models/performance_metric.dart';
+import '../models/resource_sample.dart';
 import '../models/resume.dart';
 import '../models/resume_embedding.dart';
 import '../models/search_query.dart';
@@ -147,6 +148,20 @@ class ResumeRepository {
   Future<void> clearPerformanceMetrics() async {
     _db.metrics.clear();
     await _db.persistMetrics();
+  }
+
+  Future<void> recordResourceSample(ResourceSample sample) async {
+    sample.id = _db.nextResourceSampleId();
+    _db.resourceSamples.add(sample);
+    await _db.persistResourceSamples();
+  }
+
+  Future<List<ResourceSample>> getAllResourceSamples() async =>
+      List<ResourceSample>.from(_db.resourceSamples);
+
+  Future<void> clearResourceSamples() async {
+    _db.resourceSamples.clear();
+    await _db.persistResourceSamples();
   }
 
   Future<void> clearAllData() async {

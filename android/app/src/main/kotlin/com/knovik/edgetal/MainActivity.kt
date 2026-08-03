@@ -19,5 +19,6 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         EmbedderChannel(applicationContext).register(messenger)
         LlmChannel(applicationContext).register(messenger)
+        ResourceMonitorChannel(applicationContext).register(messenger)
     }
 }

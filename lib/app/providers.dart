@@ -6,11 +6,13 @@ import '../domain/embedding/embedding_provider.dart';
 import '../domain/embedding/native_embedding_provider.dart';
 import '../domain/ingestion/embedding_ingestion_service.dart';
 import '../domain/llm/candidate_agent.dart';
+import '../domain/llm/inference_backend_preference.dart';
 import '../domain/llm/llm_provider.dart';
 import '../domain/llm/model_download_manager.dart';
 import '../domain/llm/native_llm_provider.dart';
 import '../domain/llm/search_agent.dart';
 import '../domain/monitor/performance_monitor.dart';
+import '../domain/monitor/resource_profiler.dart';
 import '../domain/search/vector_search_engine.dart';
 
 /// Composition root. One place to see the whole dependency graph and to swap an
@@ -25,6 +27,11 @@ final resumeRepositoryProvider = Provider<ResumeRepository>(
 final performanceMonitorProvider = Provider<PerformanceMonitor>(
   (ref) => PerformanceMonitor(ref.watch(resumeRepositoryProvider)),
 );
+
+final resourceProfilerProvider = Provider<ResourceProfiler>((_) => ResourceProfiler());
+
+final inferenceBackendPreferenceProvider =
+    Provider<InferenceBackendPreference>((_) => InferenceBackendPreference());
 
 final embeddingProviderProvider = Provider<EmbeddingProvider>(
   (_) => NativeEmbeddingProvider(),

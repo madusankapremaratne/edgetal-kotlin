@@ -50,8 +50,15 @@ class InsightsScreen extends ConsumerWidget {
               child: LinearProgressIndicator(),
             ),
           Expanded(
-            child: state.metrics.isEmpty && !state.running
-                ? EmptyState(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+              children: [
+                _ResourceProfileSection(state: state, notifier: notifier),
+                const SizedBox(height: AppSpacing.xl),
+                const SectionHeader(title: 'Retrieval benchmark'),
+                const SizedBox(height: AppSpacing.md),
+                if (state.metrics.isEmpty && !state.running)
+                  EmptyState(
                     icon: Icons.insights_outlined,
                     title: 'No measurements yet',
                     message:
@@ -62,62 +69,221 @@ class InsightsScreen extends ConsumerWidget {
                       label: const Text('Run evaluation suite'),
                     ),
                   )
-                : ListView(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                    children: [
-                      StatStrip(items: [
-                        StatItem(
-                          label: 'Avg retrieval',
-                          value: '${state.summary.avgRetrievalMs.toStringAsFixed(0)} ms',
-                          icon: Icons.speed_outlined,
+                else ...[
+                  StatStrip(items: [
+                    StatItem(
+                      label: 'Avg retrieval',
+                      value: '${state.summary.avgRetrievalMs.toStringAsFixed(0)} ms',
+                      icon: Icons.speed_outlined,
+                    ),
+                    StatItem(
+                      label: 'Avg indexing',
+                      value: '${state.summary.avgIngestionMs.toStringAsFixed(0)} ms',
+                      icon: Icons.memory_outlined,
+                    ),
+                    StatItem(
+                      label: 'Mean P@5',
+                      value: state.summary.meanPrecision.toStringAsFixed(2),
+                      icon: Icons.center_focus_strong_outlined,
+                    ),
+                  ]),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppCard(
+                    color: context.colors.surfaceSubtle,
+                    child: Row(
+                      children: [
+                        Icon(Icons.smartphone_outlined,
+                            size: 18, color: context.colors.textSecondary),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            state.summary.deviceInfo,
+                            style: context.text.bodySmall,
+                          ),
                         ),
-                        StatItem(
-                          label: 'Avg indexing',
-                          value: '${state.summary.avgIngestionMs.toStringAsFixed(0)} ms',
-                          icon: Icons.memory_outlined,
+                        FilledButton.tonalIcon(
+                          onPressed:
+                              state.running ? null : notifier.runAutoBenchmark,
+                          icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                          label: const Text('Run suite'),
                         ),
-                        StatItem(
-                          label: 'Mean P@5',
-                          value: state.summary.meanPrecision.toStringAsFixed(2),
-                          icon: Icons.center_focus_strong_outlined,
-                        ),
-                      ]),
-                      const SizedBox(height: AppSpacing.lg),
-                      AppCard(
-                        color: context.colors.surfaceSubtle,
-                        child: Row(
-                          children: [
-                            Icon(Icons.smartphone_outlined,
-                                size: 18, color: context.colors.textSecondary),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                state.summary.deviceInfo,
-                                style: context.text.bodySmall,
-                              ),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed:
-                                  state.running ? null : notifier.runAutoBenchmark,
-                              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                              label: const Text('Run suite'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      const SectionHeader(title: 'Recent measurements'),
-                      const SizedBox(height: AppSpacing.md),
-                      for (final m in state.metrics.reversed)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _MetricRow(metric: m),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+                  const SectionHeader(title: 'Recent measurements'),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final (i, m) in state.metrics.reversed.indexed)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: StaggeredEntrance(
+                        index: i,
+                        child: _MetricRow(metric: m),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "Computational resource analysis" section — sustained-load profiling
+/// (memory / battery / CPU / thermal) across the full on-device pipeline.
+class _ResourceProfileSection extends StatelessWidget {
+  const _ResourceProfileSection({required this.state, required this.notifier});
+
+  final InsightsState state;
+  final InsightsController notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = state.profileSummary;
+    final (completed, total) = state.profileProgress;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(
+          title: 'Computational resource analysis',
+          subtitle: 'Full pipeline (embed → search → LLM) under sustained load',
+          trailing: (summary.hasData || state.resourceSamples.isNotEmpty) &&
+                  !state.profiling
+              ? IconButton(
+                  tooltip: 'Clear resource samples',
+                  onPressed: notifier.clearResourceSamples,
+                  icon: const Icon(Icons.delete_outline),
+                )
+              : null,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppCard(
+          color: context.colors.surfaceSubtle,
+          child: Text(
+            'Samples memory, battery, CPU and thermal state every 2s while the '
+            'full retrieval+generation pipeline runs back-to-back. Run once per '
+            'device (e.g. Pixel 7 Pro, Redmi Note 7) with the screen on and '
+            'unplugged for a true battery-drain reading. Thermal status reads '
+            '"UNSUPPORTED" below Android 10 (API 29). Embedding runs CPU-only; '
+            'the LLM backend (CPU/GPU) is set on the Models screen.',
+            style: context.text.bodySmall,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (state.profiling) ...[
+          LinearProgressIndicator(
+            value: total > 0 ? completed / total : null,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Query $completed/$total…',
+            style: context.text.bodySmall,
+          ),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => notifier.runSustainedProfile(totalQueries: 10),
+                  icon: const Icon(Icons.bolt_outlined, size: 18),
+                  label: const Text('Quick profile (10)'),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => notifier.runSustainedProfile(totalQueries: 60),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text('Full profile (60)'),
+                ),
+              ),
+            ],
+          ),
+        if (summary.hasData) ...[
+          const SizedBox(height: AppSpacing.lg),
+          StatStrip(items: [
+            StatItem(
+              label: 'Peak RAM',
+              value: '${summary.peakMemMb.toStringAsFixed(0)} MB',
+              icon: Icons.memory_outlined,
+            ),
+            StatItem(
+              label: 'Avg RAM',
+              value: '${summary.avgMemMb.toStringAsFixed(0)} MB',
+              icon: Icons.memory_outlined,
+            ),
+            StatItem(
+              label: 'Battery drained',
+              value: '${summary.batteryPctDrained.toStringAsFixed(0)}%',
+              icon: Icons.battery_full_outlined,
+            ),
+          ]),
+          const SizedBox(height: AppSpacing.sm),
+          StatStrip(items: [
+            StatItem(
+              label: 'Avg CPU',
+              value: '${summary.avgCpuPct.toStringAsFixed(0)}%',
+              icon: Icons.speed_outlined,
+            ),
+            StatItem(
+              label: 'Peak CPU',
+              value: '${summary.peakCpuPct.toStringAsFixed(0)}%',
+              icon: Icons.speed_outlined,
+            ),
+            StatItem(
+              label: 'Thermal',
+              value: summary.throttled ? '${summary.maxThermalStatus} ⚠' : summary.maxThermalStatus,
+              icon: Icons.thermostat_outlined,
+            ),
+          ]),
+          const SizedBox(height: AppSpacing.md),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(summary.summaryText, style: context.text.bodySmall),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: notifier.exportResourceCsv()));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Resource CSV copied')),
+                          );
+                        },
+                        icon: const Icon(Icons.copy_all_outlined, size: 18),
+                        label: const Text('Copy CSV'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: summary.summaryText));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Summary copied')),
+                          );
+                        },
+                        icon: const Icon(Icons.content_copy_outlined, size: 18),
+                        label: const Text('Copy summary'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

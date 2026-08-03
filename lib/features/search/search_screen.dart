@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../shared/page_scaffold.dart';
+import 'account_gate_modal.dart';
 import 'search_controller.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -31,9 +32,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
-  void _run() {
+  Future<void> _run() async {
     FocusScope.of(context).unfocus();
-    ref.read(searchControllerProvider.notifier).search(_controller.text);
+    final currentCount = ref.read(searchControllerProvider).searchCount;
+    await ref.read(searchControllerProvider.notifier).search(_controller.text);
+    if (currentCount >= 2 && mounted) {
+      AccountGateModal.show(
+        context,
+        onContinue: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account creation flow initialized')),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -110,27 +122,37 @@ class _Results extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      transitionBuilder: fadeThroughTransition,
+      child: _build(context, ref),
+    );
+  }
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     final state = model.state;
     if (state is SearchIdle) {
-      return _Examples(onPick: onPickExample);
+      return _Examples(key: const ValueKey('idle'), onPick: onPickExample);
     }
     if (state is SearchLoading) {
-      return const _Centered(child: CircularProgressIndicator());
+      return const _Centered(key: ValueKey('loading'), child: LoadingDots());
     }
     if (state is SearchAgenticLoading) {
       return _Centered(
+        key: const ValueKey('agentic'),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            const LoadingDots(),
             const SizedBox(height: AppSpacing.lg),
-            Text(state.step, style: context.text.bodyMedium),
+            Text(state.step, style: context.text.bodyMedium, textAlign: TextAlign.center),
           ],
         ),
       );
     }
     if (state is SearchError) {
       return EmptyState(
+        key: const ValueKey('error'),
         icon: Icons.error_outline,
         title: 'Search unavailable',
         message: state.message,
@@ -139,6 +161,7 @@ class _Results extends ConsumerWidget {
     final success = state as SearchSuccess;
     if (success.results.isEmpty) {
       return EmptyState(
+        key: const ValueKey('no-results'),
         icon: Icons.search_off_outlined,
         title: 'No close matches',
         message: 'Try AI assist to broaden the query automatically.',
@@ -152,12 +175,13 @@ class _Results extends ConsumerWidget {
     }
 
     return ListView(
+      key: ValueKey('results-${model.query}-${success.results.length}'),
       padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
       children: [
         _ResultMeta(model: model, success: success),
         const SizedBox(height: AppSpacing.lg),
-        for (final r in success.results) ...[
-          _ResultCard(result: r),
+        for (var i = 0; i < success.results.length; i++) ...[
+          StaggeredEntrance(index: i, child: _ResultCard(result: success.results[i])),
           const SizedBox(height: AppSpacing.md),
         ],
         const SizedBox(height: AppSpacing.sm),
@@ -270,7 +294,13 @@ class _MatchBadge extends StatelessWidget {
     final strong = pct >= 60;
     final color = strong ? context.colors.privacy : context.colors.warning;
     final bg = strong ? context.colors.privacySubtle : context.colors.warningSubtle;
-    return AppPill(label: '$pct% match', color: color, background: bg);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 340),
+      curve: Curves.elasticOut,
+      builder: (context, t, child) => Transform.scale(scale: t, child: child),
+      child: AppPill(label: '$pct% match', color: color, background: bg),
+    );
   }
 }
 
@@ -299,7 +329,7 @@ class _Feedback extends ConsumerWidget {
 }
 
 class _Examples extends StatelessWidget {
-  const _Examples({required this.onPick});
+  const _Examples({super.key, required this.onPick});
   final void Function(String) onPick;
 
   @override
@@ -323,20 +353,26 @@ class _Examples extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         Text('Try a search', style: context.text.titleSmall),
         const SizedBox(height: AppSpacing.md),
-        for (final e in _SearchScreenState._examples)
+        for (var i = 0; i < _SearchScreenState._examples.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: AppCard(
-              onTap: () => onPick(e),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-              child: Row(
-                children: [
-                  Icon(Icons.north_east,
-                      size: 16, color: context.colors.textMuted),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text(e, style: context.text.bodyMedium)),
-                ],
+            child: StaggeredEntrance(
+              index: i,
+              child: AppCard(
+                onTap: () => onPick(_SearchScreenState._examples[i]),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                child: Row(
+                  children: [
+                    Icon(Icons.north_east,
+                        size: 16, color: context.colors.textMuted),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(_SearchScreenState._examples[i],
+                          style: context.text.bodyMedium),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -346,7 +382,7 @@ class _Examples extends StatelessWidget {
 }
 
 class _Centered extends StatelessWidget {
-  const _Centered({required this.child});
+  const _Centered({super.key, required this.child});
   final Widget child;
   @override
   Widget build(BuildContext context) => Center(child: child);
