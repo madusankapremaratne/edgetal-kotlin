@@ -6,6 +6,7 @@ import '../features/candidates/candidates_screen.dart';
 import '../features/details/resume_details_screen.dart';
 import '../features/help/help_screen.dart';
 import '../features/import/import_screen.dart';
+import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/jobs_screen.dart';
 import '../features/models/models_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
@@ -92,6 +93,14 @@ final appRouter = GoRouter(
           resumeId: id,
           highlight: state.uri.queryParameters['q'],
         );
+      },
+    ),
+    GoRoute(
+      path: '/job/:id',
+      parentNavigatorKey: _rootKey,
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        return JobDetailScreen(jobId: id);
       },
     ),
   ],

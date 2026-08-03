@@ -12,7 +12,6 @@ import '../../core/widgets/feature_guide_overlay.dart';
 import '../../data/models/resume.dart';
 import '../../domain/guide/in_app_guide_service.dart';
 import '../shared/page_scaffold.dart';
-import '../shared/stat_strip.dart';
 import 'candidates_controller.dart';
 
 class CandidatesScreen extends ConsumerStatefulWidget {
