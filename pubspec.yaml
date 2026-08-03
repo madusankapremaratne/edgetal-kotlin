@@ -24,6 +24,11 @@ dependencies:
   http: ^1.2.2
   file_picker: ^8.1.4
 
+  # Resume file parsing (folder import)
+  syncfusion_flutter_pdf: ^33.2.13
+  docx_to_text: ^1.0.1
+  crypto: ^3.0.6
+
   # Local persistence
   path_provider: ^2.1.5
   shared_preferences: ^2.3.3

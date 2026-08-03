@@ -10,6 +10,11 @@ import '../../core/widgets/app_widgets.dart';
 import '../shared/page_scaffold.dart';
 import 'import_controller.dart';
 
+/// Whether "From folder" appears as an import option at all. Kept as a
+/// top-level constant (rather than inline in build()) so the segmented tab's
+/// option list and index bounds stay in sync everywhere it's read.
+bool get _folderImportAvailable => ImportController.isFolderImportSupported;
+
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
 
@@ -38,6 +43,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     }
   }
 
+  Future<void> _pickFolder() async {
+    final path = await FilePicker.platform.getDirectoryPath();
+    if (path != null) {
+      await ref.read(importControllerProvider.notifier).importFromFolder(path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(importControllerProvider);
@@ -56,6 +68,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     });
 
     final busy = state is ImportLoading;
+    final options = [
+      'From URL',
+      'Local file',
+      if (_folderImportAvailable) 'From folder',
+    ];
+    // Defensive clamp in case the option list shrinks (e.g. platform check
+    // changes at runtime) while a later tab was selected.
+    final tab = _tab < options.length ? _tab : 0;
 
     return PageScaffold(
       title: 'Import resumes',
@@ -69,18 +89,20 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Segmented(
-            index: _tab,
+            index: tab,
             onChanged: busy ? null : (i) => setState(() => _tab = i),
-            options: const ['From URL', 'Local file'],
+            options: options,
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (_tab == 0)
+          if (tab == 0)
             _UrlCard(controller: _urlController, busy: busy, onImport: () {
               FocusScope.of(context).unfocus();
               notifier.importFromUrl(_urlController.text);
             })
+          else if (tab == 1)
+            _FileCard(busy: busy, onPick: _pickFile)
           else
-            _FileCard(busy: busy, onPick: _pickFile),
+            _FolderCard(busy: busy, onPick: _pickFolder),
           AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
@@ -235,6 +257,34 @@ class _FileCard extends StatelessWidget {
   }
 }
 
+class _FolderCard extends StatelessWidget {
+  const _FolderCard({required this.busy, required this.onPick});
+  final bool busy;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            title: 'Import from a folder',
+            subtitle: 'Point at a folder of real resumes (PDF/DOCX) — the '
+                'on-device AI reads each one and fills in the fields',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppGradientButton(
+            onPressed: busy ? null : onPick,
+            icon: Icons.drive_folder_upload_outlined,
+            label: 'Choose folder',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusCard extends StatelessWidget {
   const _StatusCard({super.key, required this.state, required this.onDismiss});
   final ImportUiState state;
@@ -371,7 +421,8 @@ class _FormatsCard extends StatelessWidget {
           Text(
             '• Kaggle Resume Dataset (9 columns)\n'
             '• Extended Resume Dataset (35 columns)\n'
-            '• Custom CSV with a header row (auto-detected)',
+            '• Custom CSV with a header row (auto-detected)'
+            '${_folderImportAvailable ? '\n• A folder of real PDF/DOCX resumes' : ''}',
             style: context.text.bodySmall,
           ),
           const SizedBox(height: AppSpacing.md),

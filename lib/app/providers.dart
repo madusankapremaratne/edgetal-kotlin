@@ -5,11 +5,13 @@ import '../data/repository/resume_repository.dart';
 import '../domain/embedding/embedding_provider.dart';
 import '../domain/embedding/native_embedding_provider.dart';
 import '../domain/ingestion/embedding_ingestion_service.dart';
+import '../domain/ingestion/folder_import_service.dart';
 import '../domain/llm/candidate_agent.dart';
 import '../domain/llm/inference_backend_preference.dart';
 import '../domain/llm/llm_provider.dart';
 import '../domain/llm/model_download_manager.dart';
 import '../domain/llm/native_llm_provider.dart';
+import '../domain/llm/resume_extraction_agent.dart';
 import '../domain/llm/search_agent.dart';
 import '../domain/monitor/performance_monitor.dart';
 import '../domain/monitor/resource_profiler.dart';
@@ -65,6 +67,17 @@ final ingestionServiceProvider = Provider<EmbeddingIngestionService>(
     ref.watch(resumeRepositoryProvider),
     ref.watch(embeddingProviderProvider),
     ref.watch(performanceMonitorProvider),
+  ),
+);
+
+final resumeExtractionAgentProvider = Provider<ResumeExtractionAgent>(
+  (ref) => ResumeExtractionAgent(ref.watch(llmProviderProvider)),
+);
+
+final folderImportServiceProvider = Provider<FolderImportService>(
+  (ref) => FolderImportService(
+    ref.watch(resumeRepositoryProvider),
+    ref.watch(resumeExtractionAgentProvider),
   ),
 );
 
