@@ -1,0 +1,27 @@
+PODS:
+  - Flutter (1.0.0)
+  - MediaPipeTasksCommon (0.10.21)
+  - MediaPipeTasksText (0.10.21):
+    - MediaPipeTasksCommon (= 0.10.21)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - MediaPipeTasksText
+
+SPEC REPOS:
+  trunk:
+    - MediaPipeTasksCommon
+    - MediaPipeTasksText
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  MediaPipeTasksCommon: 6cfa29170d4900f04d250ad95ec058f14a741f38
+  MediaPipeTasksText: aa2536ed8c9b44cccc08eb2620fc48ad17121ac9
+
+PODFILE CHECKSUM: 2f38f5fa168215e218c60312155c9be7117d834d
+
+COCOAPODS: 1.16.2

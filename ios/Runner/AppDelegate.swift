@@ -26,9 +26,10 @@ import UIKit
   ///
   /// TODO: implement with the MediaPipeTasksText / MediaPipeTasksGenAI iOS pods,
   /// mirroring `EmbedderChannel.kt` / `LlmChannel.kt` on Android.
+  private static let embedderChannel = EmbedderChannel()
+
   static func registerMlChannels(messenger: FlutterBinaryMessenger) {
-    let embedder = FlutterMethodChannel(name: "edgetal/embedder", binaryMessenger: messenger)
-    embedder.setMethodCallHandler { _, result in result(FlutterMethodNotImplemented) }
+    embedderChannel.register(messenger: messenger)
 
     let llm = FlutterMethodChannel(name: "edgetal/llm", binaryMessenger: messenger)
     llm.setMethodCallHandler { call, result in
