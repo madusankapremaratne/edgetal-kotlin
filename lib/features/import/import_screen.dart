@@ -4,9 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/feature_guide_overlay.dart';
+import '../../domain/guide/in_app_guide_service.dart';
 import '../shared/page_scaffold.dart';
 import 'import_controller.dart';
 
@@ -23,6 +26,45 @@ class ImportScreen extends ConsumerStatefulWidget {
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   final _urlController = TextEditingController();
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGuide());
+  }
+
+  Future<void> _checkGuide() async {
+    final guide = ref.read(inAppGuideServiceProvider);
+    await guide.initialize();
+    if (!mounted) return;
+    if (!guide.isGuideCompleted(InAppGuideService.keyImportTour)) {
+      FeatureGuideOverlay.show(
+        context,
+        steps: const [
+          GuideStep(
+            title: '1. From Folder Import',
+            description:
+                'Pick a local folder containing PDF/DOCX resumes for batch parsing and automatic vector embedding.',
+            icon: Icons.folder_open,
+          ),
+          GuideStep(
+            title: '2. Cloud Folder Import',
+            description:
+                'Connect to Google Drive, OneDrive, or iCloud Drive to import stored resumes directly.',
+            icon: Icons.cloud_outlined,
+          ),
+          GuideStep(
+            title: '3. CSV File or URL Link',
+            description:
+                'Import candidate datasets from a local .csv file or directly from a web URL link.',
+            icon: Icons.table_chart_outlined,
+          ),
+        ],
+        onCompleted: () =>
+            guide.markGuideCompleted(InAppGuideService.keyImportTour),
+      );
+    }
+  }
 
   @override
   void dispose() {

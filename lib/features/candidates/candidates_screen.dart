@@ -8,16 +8,62 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
+import '../../core/widgets/feature_guide_overlay.dart';
 import '../../data/models/resume.dart';
+import '../../domain/guide/in_app_guide_service.dart';
 import '../shared/page_scaffold.dart';
 import '../shared/stat_strip.dart';
 import 'candidates_controller.dart';
 
-class CandidatesScreen extends ConsumerWidget {
+class CandidatesScreen extends ConsumerStatefulWidget {
   const CandidatesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CandidatesScreen> createState() => _CandidatesScreenState();
+}
+
+class _CandidatesScreenState extends ConsumerState<CandidatesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGuide());
+  }
+
+  Future<void> _checkGuide() async {
+    final guide = ref.read(inAppGuideServiceProvider);
+    await guide.initialize();
+    if (!mounted) return;
+    if (!guide.isGuideCompleted(InAppGuideService.keyCandidatesTour)) {
+      FeatureGuideOverlay.show(
+        context,
+        steps: const [
+          GuideStep(
+            title: 'Natural Language Search',
+            description:
+                'Type queries like "Senior React Native developer" to search candidate profiles using on-device semantic vector matching.',
+            icon: Icons.search,
+          ),
+          GuideStep(
+            title: 'Candidate Match Scores',
+            description:
+                'Candidates are ranked instantly with visual match percentages reflecting deep skill and experience alignment.',
+            icon: Icons.stars,
+          ),
+          GuideStep(
+            title: 'Explainable AI Analysis',
+            description:
+                'Tap any candidate to generate structured fit breakdowns powered by on-device Gemma LLM.',
+            icon: Icons.psychology,
+          ),
+        ],
+        onCompleted: () =>
+            guide.markGuideCompleted(InAppGuideService.keyCandidatesTour),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(candidatesControllerProvider);
     final controller = ref.read(candidatesControllerProvider.notifier);
     // Kicks off the one-time embedder reconciliation (offline → on-device).

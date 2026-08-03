@@ -4,6 +4,7 @@ import '../data/local/local_database.dart';
 import '../data/repository/resume_repository.dart';
 import '../domain/embedding/embedding_provider.dart';
 import '../domain/embedding/native_embedding_provider.dart';
+import '../domain/guide/in_app_guide_service.dart';
 import '../domain/ingestion/embedding_ingestion_service.dart';
 import '../domain/ingestion/folder_import_service.dart';
 import '../domain/llm/candidate_agent.dart';
@@ -34,6 +35,9 @@ final resourceProfilerProvider = Provider<ResourceProfiler>((_) => ResourceProfi
 
 final inferenceBackendPreferenceProvider =
     Provider<InferenceBackendPreference>((_) => InferenceBackendPreference());
+
+final inAppGuideServiceProvider =
+    Provider<InAppGuideService>((_) => InAppGuideService());
 
 final embeddingProviderProvider = Provider<EmbeddingProvider>(
   (_) => NativeEmbeddingProvider(),

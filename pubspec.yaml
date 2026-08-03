@@ -47,6 +47,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
+  remove_alpha_ios: true
   image_path: "assets/logos/edgetal-logo-512.png"
   min_sdk_android: 26
 
