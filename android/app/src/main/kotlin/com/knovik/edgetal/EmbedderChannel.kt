@@ -3,21 +3,19 @@ package com.knovik.edgetal
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.Executors
 import kotlin.math.sqrt
 
 /**
  * Native side of the `edgetal/embedder` channel — on-device text embeddings via
- * MediaPipe's Text Embedder. Ported from the original EdgeTal
- * `MediaPipeEmbeddingProvider`.
- *
- * The model (`text_embedder.tflite`) ships in `android/app/src/main/assets/`.
- * Work runs on a background executor; results are posted back on the main thread
- * (MethodChannel.Result must be invoked there).
+ * MediaPipe's Text Embedder.
  */
 class EmbedderChannel(private val context: Context) {
 
@@ -34,7 +32,14 @@ class EmbedderChannel(private val context: Context) {
                         val dim = ensureEmbedder()
                         main.post { result.success(dim) }
                     } catch (e: Exception) {
-                        main.post { result.error("INIT_FAILED", e.message, null) }
+                        Log.e("EmbedderChannel", "Initialization failed", e)
+                        main.post {
+                            result.error(
+                                "INIT_FAILED",
+                                "${e.javaClass.simpleName}: ${e.message}",
+                                e.stackTraceToString()
+                            )
+                        }
                     }
                 }
                 "embed" -> {
@@ -50,6 +55,7 @@ class EmbedderChannel(private val context: Context) {
                             val normalized = normalize(raw).map { it.toDouble() }
                             main.post { result.success(normalized) }
                         } catch (e: Exception) {
+                            Log.e("EmbedderChannel", "Embedding failed for text length ${text.length}", e)
                             main.post { result.error("EMBED_FAILED", e.message, null) }
                         }
                     }
@@ -60,23 +66,47 @@ class EmbedderChannel(private val context: Context) {
     }
 
     /** Lazily builds the embedder and returns its output dimension. */
+    @Synchronized
     private fun ensureEmbedder(): Int {
         if (embedder == null) {
-            val options = TextEmbedder.TextEmbedderOptions.builder()
-                .setBaseOptions(
-                    BaseOptions.builder()
-                        .setModelAssetPath("text_embedder.tflite")
-                        .build()
-                )
-                .build()
-            embedder = TextEmbedder.createFromOptions(context, options)
-            // Probe the real output dimension once so Dart and the store agree.
-            dimension = embedder!!.embed("dimension probe")
-                .embeddingResult()
+            try {
+                val options = TextEmbedder.TextEmbedderOptions.builder()
+                    .setBaseOptions(
+                        BaseOptions.builder()
+                            .setModelAssetPath("text_embedder.tflite")
+                            .build()
+                    )
+                    .build()
+                embedder = TextEmbedder.createFromOptions(context, options)
+                Log.i("EmbedderChannel", "MediaPipe TextEmbedder created via AssetPath successfully.")
+            } catch (e: Exception) {
+                Log.w("EmbedderChannel", "Failed to load via AssetPath, attempting cache copy fallback...", e)
+                val modelFile = File(context.cacheDir, "text_embedder.tflite")
+                if (!modelFile.exists() || modelFile.length() == 0L) {
+                    context.assets.open("text_embedder.tflite").use { input ->
+                        FileOutputStream(modelFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                val options = TextEmbedder.TextEmbedderOptions.builder()
+                    .setBaseOptions(
+                        BaseOptions.builder()
+                            .setModelFilePath(modelFile.absolutePath)
+                            .build()
+                    )
+                    .build()
+                embedder = TextEmbedder.createFromOptions(context, options)
+                Log.i("EmbedderChannel", "MediaPipe TextEmbedder created via FilePath successfully.")
+            }
+
+            val probe = embedder!!.embed("dimension probe")
+            dimension = probe.embeddingResult()
                 .embeddings()
                 .first()
                 .floatEmbedding()
                 .size
+            Log.i("EmbedderChannel", "MediaPipe Text Embedder probe complete. Dimension=$dimension")
         }
         return dimension
     }

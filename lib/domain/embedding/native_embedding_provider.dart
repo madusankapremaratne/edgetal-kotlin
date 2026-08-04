@@ -38,10 +38,14 @@ class NativeEmbeddingProvider extends EmbeddingProvider {
       final dim = await _channel.invokeMethod<int>('initialize');
       if (dim != null && dim > 0) _dimension = dim;
       _nativeReady = true;
-    } on MissingPluginException {
-      _nativeReady = false; // Native layer not wired — use fallback silently.
+    } on MissingPluginException catch (e) {
+      debugPrint('Native embedder MissingPluginException: $e');
+      _nativeReady = false;
     } on PlatformException catch (e) {
-      debugPrint('Native embedder unavailable: ${e.message}');
+      debugPrint('Native embedder PlatformException: code=${e.code}, msg=${e.message}, details=${e.details}');
+      _nativeReady = false;
+    } catch (e) {
+      debugPrint('Native embedder unexpected error: $e');
       _nativeReady = false;
     }
   }
