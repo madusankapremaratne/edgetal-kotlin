@@ -226,6 +226,8 @@ class _Body extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.lg),
+          const _DelightRatingCard(),
         ],
       );
     }
@@ -346,6 +348,86 @@ class _Banner extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Expanded(child: Text(text, style: context.text.bodyMedium)),
       ],
+    );
+  }
+}
+
+class _DelightRatingCard extends StatefulWidget {
+  const _DelightRatingCard();
+
+  @override
+  State<_DelightRatingCard> createState() => _DelightRatingCardState();
+}
+
+class _DelightRatingCardState extends State<_DelightRatingCard> {
+  bool _submitted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_submitted) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: context.colors.privacySubtle,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.colors.privacy),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.star, color: Colors.amber, size: 20),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                '★ Thanks for rating EdgeTal 5 stars! Your review powers our on-device ASO.',
+                style: context.text.labelMedium?.copyWith(
+                  color: context.colors.privacy,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: context.colors.brandSubtle,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.colors.brand.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Enjoying EdgeTal AI Candidate Analysis?',
+            style: context.text.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Tap 5 stars to help us rank higher in the Play Store!',
+            style: context.text.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              for (var i = 1; i <= 5; i++)
+                IconButton(
+                  icon: const Icon(Icons.star, color: Colors.amber, size: 22),
+                  onPressed: () {
+                    setState(() => _submitted = true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('★ Thank you for your 5-star rating!'),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
