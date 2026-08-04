@@ -1,8 +1,8 @@
-# EdgeTal — Feature Specification & Platform Roadmap
+# EdgeTal — Feature Specification & Platform Architecture
 
 > **Private Talent Intelligence. On-Device.**  
-> *Import. Search. Analyse. Hire smarter.*  
-> **Status:** 🚀 **v1.0.0-beta.1 Ready for Google Play Store** (100% On-Device AI • GDPR Compliant)
+> *Import. Search. Analyze. Hire smarter — completely offline without cloud servers.*  
+> **Status:** 🚀 **v1.0.1+6 TestFlight & Google Play Console Ready** (100% On-Device AI • GDPR Compliant)
 
 ---
 
@@ -22,28 +22,28 @@ Extracted directly from [`assets/logos/edgetal.png`](file:///Users/madus/Documen
 | 🟢 | **Privacy Emerald** | `#2E9E5B` | "100% On-Device AI" verification badge, zero-cloud indicators, success states |
 | ⚪ | **Crisp White** | `#FFFFFF` | Light surface backgrounds, clean card backgrounds, high-contrast light mode |
 
-### 🖼️ Asset Logos Bundle (`assets/logos/`)
+### 🖼️ Asset Logos & App Launcher Icons
 
 | Asset Path | Usage in App & Store | Status |
 | :--- | :--- | :---: |
-| [`assets/logos/Icon Only.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/Icon%20Only.png) | Sidebar/Navigation `_BrandMark`, Privacy Banner, App Launcher Icon | ✅ Configured |
-| [`assets/logos/edgetal-logo-512.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/edgetal-logo-512.png) | Google Play Store 512x512 Store Listing Icon | ✅ Configured |
-| [`assets/logos/For Light Bgs.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/For%20Light%20Bgs.png) | Light Theme Onboarding & Header Banner | ✅ Configured |
-| [`assets/logos/For Dark Bgs.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/For%20Dark%20Bgs.png) | Dark Theme Onboarding & Header Banner | ✅ Configured |
-| [`assets/logos/Full-Logo.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/Full-Logo.png) | High-Resolution Promotional Hero Header | ✅ Configured |
+| [`assets/logos/Icon Only.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/Icon%20Only.png) | Sidebar/Navigation `_BrandMark`, Privacy Banner, App Launcher Icon | ✅ Live |
+| [`assets/logos/edgetal-logo-512.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/edgetal-logo-512.png) | Store Listing Icon & iOS AppIcon set (`remove_alpha_ios: true`) | ✅ Live |
+| [`assets/logos/For Light Bgs.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/For%20Light%20Bgs.png) | Light Theme Onboarding & Header Banner | ✅ Live |
+| [`assets/logos/For Dark Bgs.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/For%20Dark%20Bgs.png) | Dark Theme Onboarding & Header Banner | ✅ Live |
+| [`assets/logos/Full-Logo.png`](file:///Users/madus/Documents/Github/skillvault-kotlin/assets/logos/Full-Logo.png) | High-Resolution Promotional Hero Header | ✅ Live |
 
 ---
 
-## 🤖 Google Play Store Beta Version Specification
+## 🤖 Platform Build & Release Specifications
 
-EdgeTal is packaged as an Android App Bundle (`.aab`) targeting Android 14+ (API 34/36) with native MediaPipe acceleration:
+EdgeTal is packaged and signed for iOS (TestFlight / App Store Connect) and Android (Google Play Store):
 
-| Configuration Parameter | Setting / Value | Notes |
+| Configuration Parameter | Setting / Value | Platform & Notes |
 | :--- | :--- | :--- |
-| **Package ID / ApplicationId** | `com.knovik.edgetal` | Unique Google Play Store bundle identity |
-| **Version Name** | `1.0.0-beta.1` | Public Beta Version String |
-| **Version Code** | `2` | Build increment tracking for Play Console |
-| **Min SDK Version** | `26` (Android 8.0 Oreo) | Mandatory minimum for MediaPipe LLM GenAI API |
+| **Package ID / ApplicationId** | `com.knovik.edgetal` | iOS Bundle ID & Google Play Package ID |
+| **Version Name / Build Number** | `1.0.1+6` | App Version `1.0.1`, Build Increment `6` |
+| **Minimum iOS Target** | `iOS 13.0` / `14.0` | Mandatory for `MediaPipeTasksText` iOS Swift Pod |
+| **Min SDK Version (Android)** | `26` (Android 8.0 Oreo) | Mandatory minimum for MediaPipe LLM GenAI API |
 | **Compile / Target SDK** | `36` / `34+` | Fully compliant with Google Play target API rules |
 | **Model Asset Packaging** | `noCompress += listOf("tflite", "bin")` | Enables direct memory-mapping of local models |
 | **Network & Privacy** | `android.permission.INTERNET` | Model weights download & optional CSV URL import only |
@@ -56,18 +56,18 @@ EdgeTal is packaged as an Android App Bundle (`.aab`) targeting Android 14+ (API
 graph TD
     UI["Flutter Modern UI Layer (Riverpod + GoRouter)"]
     
-    subgraph Android["Android Native Stack (Beta Ready)"]
+    subgraph Android["Android Native Stack"]
         A_EMB["MediaPipe Text Embedder (TFLite)"]
         A_LLM["MediaPipe GenAI (Gemma-2B GPU/NNAPI)"]
         A_VEC["ObjectBox HNSW / C++ Vector Engine"]
-        A_SEC["Android Keystore & Encrypted Preferences"]
-    end
+        A_SEC["Android Keystore & Encrypted Storage"]
+      end
 
     subgraph iOS["iOS Native Stack"]
-        I_EMB["CoreML / MediaPipe Swift Embedder"]
-        I_LLM["Apple Neural Engine / MediaPipe iOS (Gemma-2B)"]
-        I_VEC["ObjectBox Swift HNSW / Accelerate Dot-Product"]
-        I_SEC["iOS Keychain & Complete File Protection"]
+        I_EMB["MediaPipeTasksText Swift Embedder"]
+        I_LLM["Apple Metal / MediaPipe iOS (Gemma-2B)"]
+        I_VEC["Accelerate Dot-Product Vector Engine"]
+        I_SEC["iOS Keychain & Passcode App Lock"]
     end
 
     UI --> Android
@@ -76,50 +76,43 @@ graph TD
 
 ---
 
-### 🤖 Android Feature List (Google Play Beta)
+### 🌟 Comprehensive Feature Matrix
 
 | Feature Category | Capability / Sub-Feature | Implementation Details & Native Technology | Implementation Status |
 | :--- | :--- | :--- | :---: |
-| **On-Device Embedding** | MediaPipe Text Embedder | `EmbedderChannel.kt` binding to `com.google.mediapipe:tasks-text:0.10.18`. Auto-detects embedding dimension (512d). | ✅ Live |
-| **On-Device LLM Inference** | Gemma-2B Int4 GenAI | `LlmChannel.kt` binding to `com.google.mediapipe:tasks-genai:0.10.21`. Hardware accelerated via GPU / NNAPI / Vulkan. | ✅ Live |
-| **Vector Search Engine** | Cosine & HNSW Similarity | ObjectBox native vector index for instant candidate retrieval with exact keyword + vector highlight toggles. | ✅ Live |
-| **Model Management** | Resumable Download Manager | In-app download controller with pause/resume, progress bar, and storage quota monitoring. | ✅ Live |
-| **Security & Privacy** | GDPR Hardware Encryption | Android Keystore backed AES-256 encrypted local storage for zero candidate data leakage. | ✅ Live |
-| **Query Reformulation** | Local LLM Prompt Engineering | Automatic query expansion (e.g. "Python dev" → "Django, FastAPI, PyTest") using Gemma-2B. | ✅ Live |
-| **Candidate Fit Analysis** | Explainable AI Breakdown | Generates structured candidate match rationale against pasted job descriptions on-device. | ✅ Live |
-| **App Branding & Logo** | EdgeTal Logo Integration | `assets/logos/Icon Only.png` integrated into adaptive shell `_BrandMark` and Models screen Privacy Banner. | ✅ Live |
+| **On-Device Embedding** | MediaPipe Text Embedder | `EmbedderChannel.kt` (Android) and `EmbedderChannel.swift` (iOS `MediaPipeTasksText`) building 512d vector representations. | ✅ Live |
+| **On-Device LLM Inference** | Gemma-2B Int4 GenAI | `LlmChannel.kt` binding to `com.google.mediapipe:tasks-genai:0.10.21` with hardware CPU vs. GPU delegate selection. | ✅ Live |
+| **GPU / CPU Model Toggle** | Hardware Inference Delegate | Switch between CPU execution and hardware GPU delegates (Tensor G2, Snapdragon, Metal) with state persistence. | ✅ Live |
+| **Resumable Model Downloader** | Range & Redirect Downloader | HTTP range-based download manager with Hugging Face 302 redirect resolution and `.part` to `.bin` file promotion. | ✅ Live |
+| **Integrated Job Pipeline** | Job Roles & Description Vector Ranking | SRS-compliant `JobRole` model storing job descriptions, skill badges, 512d embeddings, and `JobCandidateLink` pipeline stages. | ✅ Live |
+| **Job Details & Kanban** | 3-Tab Job Detail View | Overview & Description, AI Candidate Vector Match Rankings, and Pipeline Stage Management (*Shortlisted* $\rightarrow$ *Placed*). | ✅ Live |
+| **Job Selector in AI Fit** | Targeted Gemma-2B Reasoning | `AnalysisSheet` job selector dropdown auto-populating role descriptions into local LLM prompt for structured rationale. | ✅ Live |
+| **Multi-Source Ingestion** | 3-Step Import Pipeline | 1. From Folder (PDF/DOCX), 2. Cloud Folder (iCloud Drive/Google Drive/OneDrive), 3. CSV (File or Link). Enabled on iOS & Android. | ✅ Live |
+| **Interactive In-App Guides** | Spotlight Onboarding Tours | Guided tooltip overlays across Candidates, Import, Models, and Help screens with a "Replay Feature Tours" option. | ✅ Live |
+| **Local Privacy Workspace** | Zero Cloud Account Gate | Replaced hardcoded user profile with `EdgeTal Private Workspace` status card (`48 Candidates · 3 Jobs · 🔒 100% On-Device Vault`). | ✅ Live |
+| **Local Passcode Security** | `AppLockService` Vault Lock | Optional PIN passcode and biometric lock protecting local candidate resumes from physical unauthorized access. | ✅ Live |
+| **Encrypted Backup Package** | Peer-to-Peer `.edgetal` Transfer | Password-protected encrypted backup package export/import for secure peer-to-peer team sharing without cloud servers. | ✅ Live |
+| **Talent Pool Analytics** | Local Competency Index Matrix | On-device competency index matrix, skill distributions, and dataset metric visualizer on `InsightsScreen`. | ✅ Live |
 
 ---
 
-### 🍎 iOS Feature List
+## ⚡ Complete Release Checklist
 
-| Feature Category | Capability / Sub-Feature | Implementation Details & Native Technology | Implementation Status |
-| :--- | :--- | :--- | :---: |
-| **On-Device Embedding** | CoreML / MediaPipe Swift | `EmbedderChannel.swift` bridging to MediaPipe iOS Swift SDK & CoreML text embeddings. | 🟡 In Bridge Setup |
-| **On-Device LLM Inference** | Metal / Apple Neural Engine (ANE) | Accelerated Gemma-2B execution using Metal Performance Shaders (MPS) & ANE. | 🟡 In Bridge Setup |
-| **Vector Search Engine** | Accelerate Framework / ObjectBox | High-speed SIMD vector dot-product calculations using Apple Accelerate & ObjectBox Swift index. | 🟡 In Optimization |
-| **Security & Privacy** | iOS Keychain & Data Protection | `NSFileProtectionComplete` ensuring candidate CVs are encrypted when device is locked. | ✅ Live |
-| **Fluid iOS UX & Motion** | Cupertino Aesthetics & Haptics | Smooth Apple-style modal sheets, glassmorphism blur effects, and subtle `UIImpactFeedbackGenerator` haptics. | ✅ Live |
-
----
-
-## ⚡ Enhancements & Feature Enhancement Tracker
-
-### Phase 1: Core Foundation & Beta Release (Completed ✅)
 - [x] Flutter Riverpod state management & GoRouter navigation shell
 - [x] Android native MediaPipe embedding & LLM generation over platform channels (`EmbedderChannel.kt` & `LlmChannel.kt`)
-- [x] Sample European candidate talent pool auto-seeding for immediate exploration
-- [x] Semantic vector search with exact + vector highlight toggles
-- [x] Candidate Fit analysis with Local LLM reasoning & verdict
-- [x] Full theme system integration using `edgetal.png` extracted colors (`#133046`, `#4B9CB3`, `#A9D0E5`, `#2E9E5B`, `#EFBB47`, `#E8842E`)
-- [x] Logo assets bundle (`assets/logos/`) registered in `pubspec.yaml` and embedded in `AppShell` & `ModelsScreen`
-- [x] Google Play Store Beta metadata, package ID (`com.knovik.edgetal`), version (`1.0.0-beta.1+2`), and `noCompress` rules configured
-
-### Phase 2: Play Console Beta Deployment & Native Polish (Active 🟡)
-- [ ] Build Android App Bundle (`flutter build aab --release`) for Google Play Console submission
-- [ ] iOS Native Channel completion (CoreML + MediaPipe Swift bridging)
-- [ ] Batch PDF & DOCX resume file parser with automated section extraction
-- [ ] Benchmarking suite with latency distribution metrics (p50, p95, p99)
+- [x] iOS native `MediaPipeTasksText` CocoaPod & Swift platform channel bridge (`EmbedderChannel.swift`)
+- [x] Resumable Model Weights Downloader with Hugging Face 302 redirect resolution & range resume
+- [x] Hardware CPU vs. GPU LLM inference backend toggle with `SharedPreferences` persistence
+- [x] Multi-source resume ingestion pipeline (1. From Folder, 2. Cloud Folder, 3. CSV File or Link)
+- [x] Interactive in-app onboarding guide tours & replay system on `HelpScreen`
+- [x] Integrated Job Role pipeline data model (`JobRole`, `JobCandidateLink`) & 3-tab `JobDetailScreen`
+- [x] Job Role selector dropdown in Candidate AI Fit Analysis (`AnalysisSheet`)
+- [x] Local Privacy Workspace drawer header replacing cloud sign-in/account profiles
+- [x] Local passcode & biometric app lock security service (`AppLockService`)
+- [x] Encrypted `.edgetal` backup package export & import service (`BackupPackageService`)
+- [x] Talent pool competency index matrix on `InsightsScreen`
+- [x] App Store launcher icons generated without alpha channel (`remove_alpha_ios: true`)
+- [x] TestFlight release build `1.0.1+6` compiled (`build/ios/ipa/edgetal.ipa`)
 
 ---
 
