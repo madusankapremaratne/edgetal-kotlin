@@ -8,8 +8,9 @@ import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
-import java.io.FileOutputStream
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import java.util.concurrent.Executors
 import kotlin.math.sqrt
 
@@ -80,24 +81,17 @@ class EmbedderChannel(private val context: Context) {
                 embedder = TextEmbedder.createFromOptions(context, options)
                 Log.i("EmbedderChannel", "MediaPipe TextEmbedder created via AssetPath successfully.")
             } catch (e: Exception) {
-                Log.w("EmbedderChannel", "Failed to load via AssetPath, attempting cache copy fallback...", e)
-                val modelFile = File(context.cacheDir, "text_embedder.tflite")
-                if (!modelFile.exists() || modelFile.length() == 0L) {
-                    context.assets.open("text_embedder.tflite").use { input ->
-                        FileOutputStream(modelFile).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
+                Log.w("EmbedderChannel", "Failed to load via AssetPath, trying ByteBuffer fallback...", e)
+                val buffer = loadModelBuffer("text_embedder.tflite")
                 val options = TextEmbedder.TextEmbedderOptions.builder()
                     .setBaseOptions(
                         BaseOptions.builder()
-                            .setModelFilePath(modelFile.absolutePath)
+                            .setModelBuffer(buffer)
                             .build()
                     )
                     .build()
                 embedder = TextEmbedder.createFromOptions(context, options)
-                Log.i("EmbedderChannel", "MediaPipe TextEmbedder created via FilePath successfully.")
+                Log.i("EmbedderChannel", "MediaPipe TextEmbedder created via ByteBuffer successfully.")
             }
 
             val probe = embedder!!.embed("dimension probe")
@@ -109,6 +103,15 @@ class EmbedderChannel(private val context: Context) {
             Log.i("EmbedderChannel", "MediaPipe Text Embedder probe complete. Dimension=$dimension")
         }
         return dimension
+    }
+
+    private fun loadModelBuffer(assetName: String): ByteBuffer {
+        val fileDescriptor = context.assets.openFd(assetName)
+        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        val startOffset = fileDescriptor.startOffset
+        val declaredLength = fileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
     private fun normalize(v: FloatArray): FloatArray {
