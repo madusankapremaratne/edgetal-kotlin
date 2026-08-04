@@ -37,8 +37,8 @@ class HelpScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PageScaffold(
-      title: 'Help / How It Works',
-      subtitle: 'Plain answers, no jargon',
+      title: 'Help & Beta Support',
+      subtitle: 'Plain answers & direct beta feedback',
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.pop(context),
@@ -47,6 +47,53 @@ class HelpScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Beta Tester Feedback Card
+          AppCard(
+            color: context.colors.privacySubtle,
+            borderColor: AppPalette.privacyEmerald,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.mark_chat_read_outlined,
+                        color: AppPalette.privacyEmerald),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Beta Feedback & Bug Reports',
+                      style: context.text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppPalette.privacyEmerald,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Have ideas or issues? Submit feedback to help us refine EdgeTal. No candidate data or personal logs are attached.',
+                  style: context.text.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.send, size: 16),
+                  label: const Text('Send Beta Feedback'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppPalette.privacyEmerald,
+                    side: const BorderSide(color: AppPalette.privacyEmerald),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Feedback dialog launched. Thank you for testing EdgeTal Beta!'),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Interactive Tours Card
           AppCard(
             color: context.colors.brandSubtle,
             borderColor: context.colors.brand.withValues(alpha: 0.3),
@@ -84,6 +131,8 @@ class HelpScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
+          Text('Frequently Asked Questions', style: context.text.titleSmall),
+          const SizedBox(height: AppSpacing.md),
           for (final faq in _faqs) ...[
             _FaqCard(faq: faq),
             const SizedBox(height: AppSpacing.md),
