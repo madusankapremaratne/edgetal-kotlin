@@ -88,10 +88,10 @@ class _ModelsScreenState extends ConsumerState<ModelsScreen> {
           _ModelTile(
             title: 'Text embedder',
             subtitle: state.embedderLabel.isEmpty
-                ? 'Semantic search engine'
+                ? 'MediaPipe 512d Vector Search Engine'
                 : state.embedderLabel,
             installed: true,
-            statusLabel: state.embedderNative ? 'On-device' : 'Development',
+            statusLabel: state.embedderNative ? 'On-device (512d)' : 'Fallback (Dev Mode)',
             statusColor:
                 state.embedderNative ? context.colors.privacy : context.colors.warning,
           ),
