@@ -7,6 +7,8 @@ import '../../core/theme/theme_x.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../../data/models/performance_metric.dart';
+import '../candidates/candidates_controller.dart';
+import '../jobs/jobs_controller.dart';
 import '../shared/page_scaffold.dart';
 import '../shared/stat_strip.dart';
 import 'insights_controller.dart';
@@ -18,10 +20,12 @@ class InsightsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(insightsControllerProvider);
     final notifier = ref.read(insightsControllerProvider.notifier);
+    final candidatesState = ref.watch(candidatesControllerProvider);
+    final jobsState = ref.watch(jobsControllerProvider);
 
     return PageScaffold(
       title: 'Insights',
-      subtitle: 'On-device performance — measured, not promised',
+      subtitle: 'On-device talent analytics & performance benchmarks',
       actions: [
         if (state.metrics.isNotEmpty)
           IconButton(
@@ -53,6 +57,15 @@ class InsightsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
               children: [
+                _TalentPoolInsightsSection(
+                  candidateCount: candidatesState.resumes.length,
+                  jobCount: jobsState.jobs.length,
+                  skills: candidatesState.resumes
+                      .expand((r) => r.skillList)
+                      .toSet()
+                      .toList(),
+                ),
+                const SizedBox(height: AppSpacing.xl),
                 _ResourceProfileSection(state: state, notifier: notifier),
                 const SizedBox(height: AppSpacing.xl),
                 const SectionHeader(title: 'Retrieval benchmark'),
@@ -277,6 +290,73 @@ class _ResourceProfileSection extends StatelessWidget {
                         label: const Text('Copy summary'),
                       ),
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TalentPoolInsightsSection extends StatelessWidget {
+  const _TalentPoolInsightsSection({
+    required this.candidateCount,
+    required this.jobCount,
+    required this.skills,
+  });
+
+  final int candidateCount;
+  final int jobCount;
+  final List<String> skills;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Talent pool & competency matrix',
+          subtitle: 'Calculated 100% on-device from your private resume vault',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        StatStrip(items: [
+          StatItem(
+            label: 'Indexed resumes',
+            value: '$candidateCount',
+            icon: Icons.people_outline,
+          ),
+          StatItem(
+            label: 'Active jobs',
+            value: '$jobCount',
+            icon: Icons.work_outline,
+          ),
+          StatItem(
+            label: 'Unique skills',
+            value: '${skills.length}',
+            icon: Icons.auto_awesome_outlined,
+          ),
+        ]),
+        if (skills.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Extracted Competency Index', style: context.text.titleSmall),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final skill in skills.take(12))
+                      AppPill(
+                        label: skill,
+                        color: context.colors.brand,
+                        background: context.colors.brandSubtle,
+                      ),
                   ],
                 ),
               ],

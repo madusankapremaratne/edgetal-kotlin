@@ -6,6 +6,7 @@ import '../domain/embedding/embedding_provider.dart';
 import '../domain/embedding/native_embedding_provider.dart';
 import '../domain/guide/in_app_guide_service.dart';
 import '../domain/ingestion/embedding_ingestion_service.dart';
+import '../domain/security/app_lock_service.dart';
 import '../domain/ingestion/folder_import_service.dart';
 import '../domain/llm/candidate_agent.dart';
 import '../domain/llm/inference_backend_preference.dart';
@@ -38,6 +39,9 @@ final inferenceBackendPreferenceProvider =
 
 final inAppGuideServiceProvider =
     Provider<InAppGuideService>((_) => InAppGuideService());
+
+final appLockServiceProvider =
+    Provider<AppLockService>((_) => AppLockService());
 
 final embeddingProviderProvider = Provider<EmbeddingProvider>(
   (_) => NativeEmbeddingProvider(),

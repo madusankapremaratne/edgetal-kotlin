@@ -6,7 +6,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../shared/page_scaffold.dart';
-import 'account_gate_modal.dart';
 import 'search_controller.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -34,18 +33,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _run() async {
     FocusScope.of(context).unfocus();
-    final currentCount = ref.read(searchControllerProvider).searchCount;
     await ref.read(searchControllerProvider.notifier).search(_controller.text);
-    if (currentCount >= 2 && mounted) {
-      AccountGateModal.show(
-        context,
-        onContinue: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account creation flow initialized')),
-          );
-        },
-      );
-    }
   }
 
   @override

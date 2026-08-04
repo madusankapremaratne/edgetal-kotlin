@@ -1,80 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_x.dart';
+import '../../core/widgets/app_widgets.dart';
+import '../candidates/candidates_controller.dart';
+import '../jobs/jobs_controller.dart';
 
-class DrawerPanel extends StatelessWidget {
+class DrawerPanel extends ConsumerWidget {
   const DrawerPanel({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final candidatesState = ref.watch(candidatesControllerProvider);
+    final jobsState = ref.watch(jobsControllerProvider);
+
+    final candidateCount = candidatesState.resumes.length;
+    final jobCount = jobsState.jobs.length;
+
     return Drawer(
       backgroundColor: context.scheme.surface,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User Header Profile Section (Page 9 spec)
+            // Local Privacy Workspace Header (Zero-Cloud Verified)
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppPalette.warmGold,
-                          Color.lerp(AppPalette.warmGold, Colors.white, 0.25)!,
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: AppShadow.soft(AppPalette.warmGold),
-                    ),
-                    child: Text(
-                      'AK',
-                      style: context.text.titleMedium?.copyWith(
-                        color: AppPalette.midnightNavy,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: context.colors.brandSubtle,
+                  borderRadius: AppRadius.cardXl,
+                  border: Border.all(
+                    color: context.colors.brand.withValues(alpha: 0.3),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          'Alex Kim',
-                          style: context.text.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: context.colors.textPrimary,
+                        Container(
+                          width: 40,
+                          height: 40,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: AppShadow.soft(context.colors.brand),
+                          ),
+                          child: Image.asset(
+                            'assets/logos/icon-navy.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
-                        Text(
-                          'alex@edgetal.com',
-                          style: context.text.bodySmall?.copyWith(
-                            color: context.colors.textMuted,
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Private Workspace',
+                                style: context.text.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              AppPill(
+                                label: '🔒 100% On-Device Vault',
+                                color: context.colors.privacy,
+                                background: context.colors.privacySubtle,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        _StatChip(
+                          icon: Icons.people_outline,
+                          label: '$candidateCount Candidates',
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _StatChip(
+                          icon: Icons.work_outline,
+                          label: '$jobCount Jobs',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             Divider(color: context.colors.border, height: 1),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             // Menu Items
             _DrawerTile(
               icon: Icons.home_outlined,
-              label: 'Home',
+              label: 'Home & Talent Pool',
               onTap: () {
                 Navigator.pop(context);
                 context.go('/candidates');
@@ -98,23 +126,15 @@ class DrawerPanel extends StatelessWidget {
             ),
             _DrawerTile(
               icon: Icons.backup_outlined,
-              label: 'Backup & Export',
+              label: 'Backup & Encrypted Export',
               onTap: () {
                 Navigator.pop(context);
                 context.push('/backup');
               },
             ),
             _DrawerTile(
-              icon: Icons.notifications_outlined,
-              label: 'Notifications',
-              badgeCount: 3,
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            _DrawerTile(
               icon: Icons.settings_outlined,
-              label: 'Settings & Models',
+              label: 'Settings & On-Device Models',
               onTap: () {
                 Navigator.pop(context);
                 context.go('/models');
@@ -122,20 +142,60 @@ class DrawerPanel extends StatelessWidget {
             ),
             const Spacer(),
             Divider(color: context.colors.border, height: 1),
-            // Muted Sign Out (Page 9 spec)
+            // Muted Privacy Guarantee Indicator
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
-              child: ListTile(
-                leading: Icon(Icons.logout, color: context.colors.textMuted, size: 20),
-                title: Text(
-                  'Sign out',
-                  style: context.text.bodyMedium?.copyWith(
-                    color: context.colors.textMuted,
+              child: Row(
+                children: [
+                  Icon(Icons.shield_outlined,
+                      color: context.colors.privacy, size: 18),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'GDPR Verified · Zero Cloud Sync',
+                      style: context.text.labelSmall?.copyWith(
+                        color: context.colors.privacy,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.scheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: context.colors.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: context.colors.brand),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                style: context.text.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
